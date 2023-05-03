@@ -29,8 +29,8 @@ import (
 )
 
 var (
-	defaultLang              = language.Japanese
-	translations i18n.Bundle = *i18n.NewBundle(defaultLang)
+	defaultLang               = language.Japanese
+	translations *i18n.Bundle = i18n.NewBundle(defaultLang)
 )
 
 func LoadTranslations(dir_path string) (*i18n.Bundle, error) {
@@ -48,6 +48,7 @@ func LoadTranslations(dir_path string) (*i18n.Bundle, error) {
 			panic(err)
 		}
 	}
+	translations = bundle
 	return bundle, nil
 }
 
@@ -73,14 +74,14 @@ func TranslateWithFallBack(locale discord.Locale, messageId string, templateData
 
 func Translates(locale discord.Locale, messageId string, templateData any, pluralCount int, fallback string) string {
 	messageId = strings.ReplaceAll(messageId, ".", "_")
-	Localizer := i18n.NewLocalizer(&translations, string(locale))
+	Localizer := i18n.NewLocalizer(translations, string(locale))
 	res, err := Localizer.Localize(&i18n.LocalizeConfig{
 		MessageID:    messageId,
 		TemplateData: templateData,
 		PluralCount:  pluralCount,
 	})
 	if err != nil {
-		Localizer = i18n.NewLocalizer(&translations, "ja")
+		Localizer = i18n.NewLocalizer(translations, "ja")
 		res, err = Localizer.Localize(&i18n.LocalizeConfig{
 			MessageID:    messageId,
 			TemplateData: templateData,
