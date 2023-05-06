@@ -19,7 +19,6 @@ package botlib
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/sabafly/sabafly-lib/db"
 	"github.com/sabafly/sabafly-lib/handler"
@@ -53,7 +52,6 @@ type Bot[DB db.DB] struct {
 	Version   string
 	Handler   *handler.Handler
 	DB        DB
-	ShopMute  sync.Mutex
 }
 
 func (b *Bot[DB]) SetupBot(listeners ...bot.EventListener) {
