@@ -101,6 +101,8 @@ type Config struct {
 	ShouldSyncCommands bool           `json:"sync_commands"`
 	DBConfig           db.DBConfig    `json:"db_config"`
 	Dislog             DislogConfig   `json:"dislog"`
+	ClientID           snowflake.ID   `json:"client_id"`
+	Secret             string         `json:"secret"`
 }
 
 type DislogConfig struct {

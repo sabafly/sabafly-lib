@@ -29,6 +29,7 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/gateway"
+	"github.com/disgoorg/disgo/oauth2"
 	"github.com/disgoorg/disgo/sharding"
 	"github.com/disgoorg/log"
 	"github.com/disgoorg/paginator"
@@ -38,6 +39,7 @@ func New[DB db.DB](logger log.Logger, version string, config Config) *Bot[DB] {
 	return &Bot[DB]{
 		Logger:    logger,
 		Config:    config,
+		OAuth:     oauth2.New(config.ClientID, config.Secret, oauth2.WithLogger(logger)),
 		Paginator: paginator.New(),
 		Version:   version,
 		Handler:   handler.New(logger),
@@ -47,6 +49,7 @@ func New[DB db.DB](logger log.Logger, version string, config Config) *Bot[DB] {
 type Bot[DB db.DB] struct {
 	Logger    log.Logger
 	Client    bot.Client
+	OAuth     oauth2.Client
 	Paginator *paginator.Manager
 	Config    Config
 	Version   string
