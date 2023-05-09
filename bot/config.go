@@ -4,8 +4,10 @@ import (
 	"encoding/gob"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/sabafly/sabafly-lib/db"
 
@@ -103,6 +105,15 @@ type Config struct {
 	Dislog             DislogConfig   `json:"dislog"`
 	ClientID           snowflake.ID   `json:"client_id"`
 	Secret             string         `json:"secret"`
+	HttpIp             string         `json:"http_ip"`
+	RootUri            string         `json:"root_uri"`
+}
+
+func (c Config) RedirectLink() string {
+	if strings.HasPrefix(c.HttpIp, "localhost") {
+		return fmt.Sprintf("http://%s/%s/authorize", c.HttpIp, c.RootUri)
+	}
+	return fmt.Sprintf("https://%s/%s/authorize", c.HttpIp, c.RootUri)
 }
 
 type DislogConfig struct {
