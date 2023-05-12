@@ -90,6 +90,9 @@ var defaultConfig = Config{
 		WebhookID:      0,
 		WebhookToken:   "YOUR WEBHOOK TOKEN HERE",
 	},
+	Secret:  "",
+	HttpIp:  "localhost:80",
+	RootUri: "api",
 }
 
 type Config struct {

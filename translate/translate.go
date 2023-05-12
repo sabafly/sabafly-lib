@@ -19,6 +19,7 @@ package translate
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -103,7 +104,17 @@ func Translates(locale discord.Locale, messageId string, templateData any, plura
 			if fallback != "" {
 				res = fallback
 				if !Release && translate_path != "" {
-					_ = os.WriteFile(translate_path+"/"+defaultLang.String()+".yaml", []byte(fmt.Sprintf("%s: %s\r\n", messageId, fallback)), os.ModeAppend)
+					file, err := os.OpenFile(translate_path+"/"+defaultLang.String()+".yaml", os.O_CREATE|os.O_RDWR|os.O_APPEND, os.ModeTemporary)
+					if err != nil {
+						return res
+					}
+					defer file.Close()
+					_, _ = file.WriteString(fmt.Sprintf("%s: \"%s\"\n", messageId, fallback))
+					buf, err := io.ReadAll(file)
+					if err != nil {
+						return res
+					}
+					_, _ = translations.ParseMessageFileBytes(buf, translate_path+"/"+defaultLang.String()+".yaml")
 				}
 			}
 		}
