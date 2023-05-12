@@ -11,6 +11,7 @@ type ComponentHandler func(event *events.ComponentInteractionCreate) error
 type Component struct {
 	Name    string
 	Check   Check[*events.ComponentInteractionCreate]
+	Checks  map[string]Check[*events.ComponentInteractionCreate]
 	Handler map[string]ComponentHandler
 }
 
@@ -33,6 +34,10 @@ func (h *Handler) handleComponent(event *events.ComponentInteractionCreate) {
 	}
 
 	if component.Check != nil && !component.Check(event) {
+		return
+	}
+
+	if check, ok := component.Checks[componentName]; ok && !check(event) {
 		return
 	}
 

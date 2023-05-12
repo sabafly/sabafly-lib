@@ -11,6 +11,7 @@ type ModalHandler func(event *events.ModalSubmitInteractionCreate) error
 type Modal struct {
 	Name    string
 	Check   Check[*events.ModalSubmitInteractionCreate]
+	Checks  map[string]Check[*events.ModalSubmitInteractionCreate]
 	Handler map[string]ModalHandler
 }
 
@@ -33,6 +34,10 @@ func (h *Handler) handleModal(event *events.ModalSubmitInteractionCreate) {
 	}
 
 	if modal.Check != nil && !modal.Check(event) {
+		return
+	}
+
+	if check, ok := modal.Checks[modalName]; ok && !check(event) {
 		return
 	}
 
