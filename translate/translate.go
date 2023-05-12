@@ -18,6 +18,7 @@ package translate
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 
@@ -33,6 +34,15 @@ var (
 	translations *i18n.Bundle = i18n.NewBundle(defaultLang)
 )
 
+func SetDefaultLanguage(lang language.Tag) {
+	defaultLang = lang
+}
+
+var (
+	Release        bool = false
+	translate_path string
+)
+
 func LoadTranslations(dir_path string) (*i18n.Bundle, error) {
 	bundle := i18n.NewBundle(defaultLang)
 	bundle.RegisterUnmarshalFunc("yaml", yaml.Unmarshal)
@@ -42,6 +52,7 @@ func LoadTranslations(dir_path string) (*i18n.Bundle, error) {
 	if err != nil {
 		panic(err)
 	}
+	translate_path = dir_path
 	for _, de := range fd {
 		_, err := bundle.LoadMessageFile(dir_path + "/" + de.Name())
 		if err != nil {
@@ -91,6 +102,9 @@ func Translates(locale discord.Locale, messageId string, templateData any, plura
 			res = messageId
 			if fallback != "" {
 				res = fallback
+				if !Release && translate_path != "" {
+					_ = os.WriteFile(translate_path+"/"+defaultLang.String()+".yaml", []byte(fmt.Sprintf("%s: %s\r\n", messageId, fallback)), os.ModeAppend)
+				}
 			}
 		}
 	}
