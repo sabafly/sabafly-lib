@@ -164,18 +164,3 @@ func MessageMap(key string, replace bool) *map[discord.Locale]string {
 	}
 	return &res
 }
-
-func ErrorEmbed(locale discord.Locale, key string, any ...any) (embed []*discord.Embed) {
-	var trs string
-	if len(any) != 0 {
-		trs = Translate(locale, key, any[0])
-	} else if key != "" {
-		trs = Message(locale, key)
-	}
-	embed = append(embed, &discord.Embed{
-		Title:       Message(locale, "error_message"),
-		Description: trs,
-		Color:       0xff0000,
-	})
-	return
-}
