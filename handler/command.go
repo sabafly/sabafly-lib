@@ -13,7 +13,9 @@ type (
 type Command struct {
 	Create               discord.ApplicationCommandCreate
 	Check                Check[*events.ApplicationCommandInteractionCreate]
+	Checks               map[string]Check[*events.ApplicationCommandInteractionCreate]
 	AutocompleteCheck    Check[*events.AutocompleteInteractionCreate]
+	AutocompleteChecks   map[string]Check[*events.AutocompleteInteractionCreate]
 	CommandHandlers      map[string]CommandHandler
 	AutocompleteHandlers map[string]AutocompleteHandler
 
@@ -35,6 +37,10 @@ func (h *Handler) handleCommand(event *events.ApplicationCommandInteractionCreat
 	var path string
 	if d, ok := event.Data.(discord.SlashCommandInteractionData); ok {
 		path = buildCommandPath(d.SubCommandName, d.SubCommandGroupName)
+	}
+
+	if check, ok := cmd.Checks[path]; ok && !check(event) {
+		return
 	}
 
 	handler, ok := cmd.CommandHandlers[path]
@@ -60,6 +66,10 @@ func (h *Handler) handleAutocomplete(event *events.AutocompleteInteractionCreate
 	}
 
 	path := buildCommandPath(event.Data.SubCommandName, event.Data.SubCommandGroupName)
+
+	if check, ok := cmd.AutocompleteChecks[path]; ok && !check(event) {
+		return
+	}
 
 	handler, ok := cmd.AutocompleteHandlers[path]
 	if !ok {
