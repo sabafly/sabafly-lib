@@ -37,7 +37,7 @@ func (h *Handler) handleComponent(event *events.ComponentInteractionCreate) {
 		return
 	}
 
-	if check, ok := component.Checks[componentName]; ok && !check(event) {
+	if check, ok := component.Checks[subName]; ok && !check(event) {
 		return
 	}
 
