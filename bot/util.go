@@ -103,8 +103,8 @@ func ErrorMessageEmbed(locale discord.Locale, t, fallback_title, fallback_descri
 	}
 	embeds := []discord.Embed{
 		{
-			Title:       translate.MessageWithFallBack(locale, t+"_title", fallback_title),
-			Description: translate.TranslateWithFallBack(locale, t+"_message", td, fallback_description),
+			Title:       translate.Message(locale, t+"_title", translate.WithFallback(fallback_title)),
+			Description: translate.Translate(locale, t+"_message", td, translate.WithFallback(fallback_description)),
 			Color:       0xff0000,
 		},
 	}
@@ -117,7 +117,7 @@ func ErrorTraceEmbed(locale discord.Locale, err error) []discord.Embed {
 	stack := debug.Stack()
 	embeds := []discord.Embed{
 		{
-			Title:       "💥" + translate.MessageWithFallBack(locale, "error_occurred_embed_message", "エラーが発生しました"),
+			Title:       "💥" + translate.Message(locale, "error_occurred_embed_message", translate.WithFallback("エラーが発生しました")),
 			Description: fmt.Sprintf("%s\r```%s```", err, string(stack)),
 			Color:       0xff0000,
 		},

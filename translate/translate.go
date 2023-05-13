@@ -44,6 +44,25 @@ var (
 	translate_path string
 )
 
+type Cfg struct {
+	Fallback         string
+	FallbackLanguage discord.Locale
+}
+
+type Option func(*Cfg)
+
+func WithFallback(fallback string) Option {
+	return func(c *Cfg) {
+		c.Fallback = fallback
+	}
+}
+
+func WithFallBackLanguage(lang discord.Locale) Option {
+	return func(c *Cfg) {
+		c.FallbackLanguage = lang
+	}
+}
+
 func LoadTranslations(dir_path string) (*i18n.Bundle, error) {
 	bundle := i18n.NewBundle(defaultLang)
 	bundle.RegisterUnmarshalFunc("yaml", yaml.Unmarshal)
@@ -64,27 +83,29 @@ func LoadTranslations(dir_path string) (*i18n.Bundle, error) {
 	return bundle, nil
 }
 
-func Message(locale discord.Locale, messageId string) (res string) {
-	res = MessageWithFallBack(locale, messageId, "")
+func Message(locale discord.Locale, messageId string, opts ...Option) (res string) {
+	res = Translate(locale, messageId, map[string]any{}, opts...)
 	return
 }
 
+// Deprecated: Use Message() with WithFallback()
 func MessageWithFallBack(locale discord.Locale, messageId, fallback string) (res string) {
-	res = TranslateWithFallBack(locale, messageId, map[string]any{}, fallback)
+	res = Translate(locale, messageId, map[string]any{}, WithFallback(fallback))
 	return
 }
 
-func Translate(locale discord.Locale, messageId string, templateData any) (res string) {
-	res = TranslateWithFallBack(locale, messageId, templateData, "")
+func Translate(locale discord.Locale, messageId string, templateData any, opt ...Option) (res string) {
+	res = Translates(locale, messageId, templateData, 2, opt...)
 	return
 }
 
+// Deprecated: Use Translate() with WithFallback()
 func TranslateWithFallBack(locale discord.Locale, messageId string, templateData any, fallback string) (res string) {
-	res = Translates(locale, messageId, templateData, 2, fallback)
+	res = Translates(locale, messageId, templateData, 2, WithFallback(fallback))
 	return
 }
 
-func Translates(locale discord.Locale, messageId string, templateData any, pluralCount int, fallback string) string {
+func Translates(locale discord.Locale, messageId string, templateData any, pluralCount int, opts ...Option) string {
 	messageId = strings.ReplaceAll(messageId, ".", "_")
 	Localizer := i18n.NewLocalizer(translations, string(locale))
 	res, err := Localizer.Localize(&i18n.LocalizeConfig{
@@ -92,8 +113,13 @@ func Translates(locale discord.Locale, messageId string, templateData any, plura
 		TemplateData: templateData,
 		PluralCount:  pluralCount,
 	})
+	opt := new(Cfg)
+	opt.FallbackLanguage = discord.LocaleJapanese
+	for _, o := range opts {
+		o(opt)
+	}
 	if err != nil {
-		Localizer = i18n.NewLocalizer(translations, "ja")
+		Localizer = i18n.NewLocalizer(translations, string(opt.FallbackLanguage))
 		res, err = Localizer.Localize(&i18n.LocalizeConfig{
 			MessageID:    messageId,
 			TemplateData: templateData,
@@ -101,15 +127,15 @@ func Translates(locale discord.Locale, messageId string, templateData any, plura
 		})
 		if err != nil {
 			res = messageId
-			if fallback != "" {
-				res = fallback
+			if opt.Fallback != "" {
+				res = opt.Fallback
 				if !Release && translate_path != "" {
 					file, err := os.OpenFile(translate_path+"/"+defaultLang.String()+".yaml", os.O_CREATE|os.O_RDWR|os.O_APPEND, os.ModeTemporary)
 					if err != nil {
 						return res
 					}
 					defer file.Close()
-					_, _ = file.WriteString(fmt.Sprintf("%s: \"%s\"\n", messageId, fallback))
+					_, _ = file.WriteString(fmt.Sprintf("%s: \"%s\"\n", messageId, opt.Fallback))
 					buf, err := io.ReadAll(file)
 					if err != nil {
 						return res
@@ -122,40 +148,40 @@ func Translates(locale discord.Locale, messageId string, templateData any, plura
 	return res
 }
 
-func MessageMap(key string, replace bool) *map[discord.Locale]string {
+func MessageMap(key string, replace bool, opts ...Option) *map[discord.Locale]string {
 	res := map[discord.Locale]string{
-		discord.LocaleEnglishUS:    Message(discord.LocaleEnglishUS, key),
-		discord.LocaleEnglishGB:    Message(discord.LocaleEnglishGB, key),
-		discord.LocaleBulgarian:    Message(discord.LocaleBulgarian, key),
-		discord.LocaleChineseCN:    Message(discord.LocaleChineseCN, key),
-		discord.LocaleChineseTW:    Message(discord.LocaleChineseTW, key),
-		discord.LocaleCroatian:     Message(discord.LocaleCroatian, key),
-		discord.LocaleCzech:        Message(discord.LocaleCzech, key),
-		discord.LocaleDanish:       Message(discord.LocaleDanish, key),
-		discord.LocaleDutch:        Message(discord.LocaleDutch, key),
-		discord.LocaleFinnish:      Message(discord.LocaleFinnish, key),
-		discord.LocaleFrench:       Message(discord.LocaleFrench, key),
-		discord.LocaleGerman:       Message(discord.LocaleGerman, key),
-		discord.LocaleGreek:        Message(discord.LocaleGreek, key),
-		discord.LocaleHindi:        Message(discord.LocaleHindi, key),
-		discord.LocaleHungarian:    Message(discord.LocaleHungarian, key),
-		discord.LocaleIndonesian:   Message(discord.LocaleIndonesian, key),
-		discord.LocaleItalian:      Message(discord.LocaleItalian, key),
-		discord.LocaleJapanese:     Message(discord.LocaleJapanese, key),
-		discord.LocaleKorean:       Message(discord.LocaleKorean, key),
-		discord.LocaleLithuanian:   Message(discord.LocaleLithuanian, key),
-		discord.LocaleNorwegian:    Message(discord.LocaleNorwegian, key),
-		discord.LocalePolish:       Message(discord.LocalePolish, key),
-		discord.LocalePortugueseBR: Message(discord.LocalePortugueseBR, key),
-		discord.LocaleRomanian:     Message(discord.LocaleRomanian, key),
-		discord.LocaleRussian:      Message(discord.LocaleRussian, key),
-		discord.LocaleSpanishES:    Message(discord.LocaleSpanishES, key),
-		discord.LocaleSwedish:      Message(discord.LocaleSwedish, key),
-		discord.LocaleThai:         Message(discord.LocaleThai, key),
-		discord.LocaleTurkish:      Message(discord.LocaleTurkish, key),
-		discord.LocaleUkrainian:    Message(discord.LocaleUkrainian, key),
-		discord.LocaleVietnamese:   Message(discord.LocaleVietnamese, key),
-		discord.LocaleUnknown:      Message(discord.LocaleUnknown, key),
+		discord.LocaleEnglishUS:    Message(discord.LocaleEnglishUS, key, opts...),
+		discord.LocaleEnglishGB:    Message(discord.LocaleEnglishGB, key, opts...),
+		discord.LocaleBulgarian:    Message(discord.LocaleBulgarian, key, opts...),
+		discord.LocaleChineseCN:    Message(discord.LocaleChineseCN, key, opts...),
+		discord.LocaleChineseTW:    Message(discord.LocaleChineseTW, key, opts...),
+		discord.LocaleCroatian:     Message(discord.LocaleCroatian, key, opts...),
+		discord.LocaleCzech:        Message(discord.LocaleCzech, key, opts...),
+		discord.LocaleDanish:       Message(discord.LocaleDanish, key, opts...),
+		discord.LocaleDutch:        Message(discord.LocaleDutch, key, opts...),
+		discord.LocaleFinnish:      Message(discord.LocaleFinnish, key, opts...),
+		discord.LocaleFrench:       Message(discord.LocaleFrench, key, opts...),
+		discord.LocaleGerman:       Message(discord.LocaleGerman, key, opts...),
+		discord.LocaleGreek:        Message(discord.LocaleGreek, key, opts...),
+		discord.LocaleHindi:        Message(discord.LocaleHindi, key, opts...),
+		discord.LocaleHungarian:    Message(discord.LocaleHungarian, key, opts...),
+		discord.LocaleIndonesian:   Message(discord.LocaleIndonesian, key, opts...),
+		discord.LocaleItalian:      Message(discord.LocaleItalian, key, opts...),
+		discord.LocaleJapanese:     Message(discord.LocaleJapanese, key, opts...),
+		discord.LocaleKorean:       Message(discord.LocaleKorean, key, opts...),
+		discord.LocaleLithuanian:   Message(discord.LocaleLithuanian, key, opts...),
+		discord.LocaleNorwegian:    Message(discord.LocaleNorwegian, key, opts...),
+		discord.LocalePolish:       Message(discord.LocalePolish, key, opts...),
+		discord.LocalePortugueseBR: Message(discord.LocalePortugueseBR, key, opts...),
+		discord.LocaleRomanian:     Message(discord.LocaleRomanian, key, opts...),
+		discord.LocaleRussian:      Message(discord.LocaleRussian, key, opts...),
+		discord.LocaleSpanishES:    Message(discord.LocaleSpanishES, key, opts...),
+		discord.LocaleSwedish:      Message(discord.LocaleSwedish, key, opts...),
+		discord.LocaleThai:         Message(discord.LocaleThai, key, opts...),
+		discord.LocaleTurkish:      Message(discord.LocaleTurkish, key, opts...),
+		discord.LocaleUkrainian:    Message(discord.LocaleUkrainian, key, opts...),
+		discord.LocaleVietnamese:   Message(discord.LocaleVietnamese, key, opts...),
+		discord.LocaleUnknown:      Message(discord.LocaleUnknown, key, opts...),
 	}
 	if replace {
 		for l, v := range res {

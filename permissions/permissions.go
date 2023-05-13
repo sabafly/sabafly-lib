@@ -30,6 +30,9 @@ func (p Permission) Has(perm string) bool {
 	perms := strings.Split(perm, ".")
 	p2 := p
 	for _, v := range perms {
+		if _, ok := p2["*"]; ok {
+			return true
+		}
 		var ok bool
 		p2, ok = p2[v]
 		if !ok && v != "*" {
