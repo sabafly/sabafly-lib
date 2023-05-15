@@ -61,7 +61,6 @@ func (b *Bot[DB]) SetupBot(listeners ...bot.EventListener) {
 	var err error
 	b.Client, err = disgo.New(b.Config.Token,
 		bot.WithLogger(b.Logger),
-		bot.WithGatewayConfigOpts(gateway.WithIntents(gateway.IntentsAll), gateway.WithAutoReconnect(true), gateway.WithLogger(b.Logger)),
 		bot.WithCacheConfigOpts(cache.WithCaches(cache.FlagsAll)),
 		bot.WithShardManagerConfigOpts(sharding.WithAutoScaling(true), sharding.WithGatewayConfigOpts(gateway.WithIntents(gateway.IntentsAll), gateway.WithAutoReconnect(true), gateway.WithLogger(b.Logger))),
 		bot.WithMemberChunkingFilter(bot.MemberChunkingFilterAll),
