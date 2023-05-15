@@ -61,10 +61,11 @@ func (b *Bot[DB]) SetupBot(listeners ...bot.EventListener) {
 	var err error
 	b.Client, err = disgo.New(b.Config.Token,
 		bot.WithLogger(b.Logger),
-		bot.WithGatewayConfigOpts(gateway.WithIntents(gateway.IntentsAll), gateway.WithAutoReconnect(true)),
+		bot.WithGatewayConfigOpts(gateway.WithIntents(gateway.IntentsAll), gateway.WithAutoReconnect(true), gateway.WithLogger(b.Logger)),
 		bot.WithCacheConfigOpts(cache.WithCaches(cache.FlagsAll)),
-		bot.WithShardManagerConfigOpts(sharding.WithAutoScaling(true), sharding.WithGatewayConfigOpts(gateway.WithIntents(gateway.IntentsAll), gateway.WithAutoReconnect(true))),
-		bot.WithEventManagerConfigOpts(bot.WithAsyncEventsEnabled(), bot.WithListeners(b.Paginator), bot.WithListeners(listeners...)),
+		bot.WithShardManagerConfigOpts(sharding.WithAutoScaling(true), sharding.WithGatewayConfigOpts(gateway.WithIntents(gateway.IntentsAll), gateway.WithAutoReconnect(true), gateway.WithLogger(b.Logger))),
+		bot.WithMemberChunkingFilter(bot.MemberChunkingFilterAll),
+		bot.WithEventManagerConfigOpts(bot.WithAsyncEventsEnabled(), bot.WithListeners(b.Paginator), bot.WithListeners(listeners...), bot.WithEventManagerLogger(b.Logger)),
 	)
 	if err != nil {
 		b.Logger.Fatalf("botのセットアップに失敗 %s", err)
