@@ -64,26 +64,70 @@ type responsibleInteraction interface {
 	CreateMessage(discord.MessageCreate, ...rest.RequestOpt) error
 }
 
-func ReturnErr(interaction responsibleInteraction, err error) error {
+func ReturnErr(interaction responsibleInteraction, err error, opts ...ReturnErrOption) error {
+	cfg := new(ReturnErrCfg)
+	for _, reo := range opts {
+		reo(cfg)
+	}
 	embeds := ErrorTraceEmbed(interaction.Locale(), err)
 	embeds = SetEmbedsProperties(embeds)
 	if err := interaction.CreateMessage(discord.MessageCreate{
 		Embeds: embeds,
+		Flags: func() discord.MessageFlags {
+			if cfg.Ephemeral {
+				return discord.MessageFlagEphemeral
+			} else {
+				return 0
+			}
+		}(),
 	}); err != nil {
 		return err
 	}
 	return err
 }
 
-func ReturnErrMessage(interaction responsibleInteraction, tr, fallback_title, fallback_description string, data ...any) error {
-	return ReturnErrMessageEphemeral(interaction, tr, fallback_title, fallback_description, false, data...)
+type ReturnErrCfg struct {
+	Ephemeral           bool   `json:"ephemeral"`
+	TranslateData       []any  `json:"translate_data"`
+	FallBackTitle       string `json:"fallback_title"`
+	FallBackDescription string `json:"fallback_description"`
 }
 
-func ReturnErrMessageEphemeral(interaction responsibleInteraction, tr, fallback_title, fallback_description string, ephemeral bool, data ...any) error {
-	embeds := ErrorMessageEmbed(interaction.Locale(), tr, fallback_title, fallback_description, data...)
+type ReturnErrOption func(*ReturnErrCfg)
+
+func WithEphemeral(enabled bool) ReturnErrOption {
+	return func(rec *ReturnErrCfg) {
+		rec.Ephemeral = enabled
+	}
+}
+
+func WithTranslateData(data ...any) ReturnErrOption {
+	return func(rec *ReturnErrCfg) {
+		rec.TranslateData = data
+	}
+}
+
+func WithFallbackTitle(title string) ReturnErrOption {
+	return func(rec *ReturnErrCfg) {
+		rec.FallBackTitle = title
+	}
+}
+
+func WithFallBackDescription(desc string) ReturnErrOption {
+	return func(rec *ReturnErrCfg) {
+		rec.FallBackDescription = desc
+	}
+}
+
+func ReturnErrMessage(interaction responsibleInteraction, tr string, opts ...ReturnErrOption) error {
+	cfg := new(ReturnErrCfg)
+	for _, reo := range opts {
+		reo(cfg)
+	}
+	embeds := ErrorMessageEmbed(interaction.Locale(), tr, cfg.FallBackTitle, cfg.FallBackDescription, cfg.TranslateData...)
 	embeds = SetEmbedsProperties(embeds)
 	var flags discord.MessageFlags
-	if ephemeral {
+	if cfg.Ephemeral {
 		flags = discord.MessageFlagEphemeral
 	}
 	if err := interaction.CreateMessage(discord.MessageCreate{
@@ -93,6 +137,11 @@ func ReturnErrMessageEphemeral(interaction responsibleInteraction, tr, fallback_
 		return err
 	}
 	return nil
+}
+
+// Deprecated: use ReturnErrMessage() with WithEphemeral()
+func ReturnErrMessageEphemeral(interaction responsibleInteraction, tr, fallback_title, fallback_description string, ephemeral bool, data ...any) error {
+	return ReturnErrMessage(interaction, tr, WithFallbackTitle(fallback_title), WithFallBackDescription(fallback_description), WithEphemeral(ephemeral), WithTranslateData(data...))
 }
 
 // エラーメッセージ埋め込みを作成する
@@ -127,6 +176,7 @@ func ErrorTraceEmbed(locale discord.Locale, err error) []discord.Embed {
 }
 
 // エラーが発生したことを返すレスポンスを作成する
+// Deprecated: use ErrorTraceEmbed()
 func ErrorRespond(locale discord.Locale, err error) discord.MessageCreate {
 	return discord.MessageCreate{
 		Embeds: ErrorTraceEmbed(locale, err),
