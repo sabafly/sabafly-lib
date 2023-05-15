@@ -56,6 +56,7 @@ type Handler struct {
 	ExcludeID  map[snowflake.ID]struct{}
 	DevGuildID []snowflake.ID
 	IsDebug    bool
+	ASync      bool
 }
 
 func (h *Handler) AddExclude(ids ...snowflake.ID) {
@@ -173,31 +174,39 @@ func (h *Handler) SyncCommands(client bot.Client, guildIDs ...snowflake.ID) {
 }
 
 func (h *Handler) OnEvent(event bot.Event) {
-	go func() {
-		if !h.IsDebug {
-			defer func() {
-				if err := recover(); err != nil {
-					h.Logger.Errorf("panic: %s", err)
-				}
-			}()
-		}
-		switch e := event.(type) {
-		case *events.ApplicationCommandInteractionCreate:
-			h.handleCommand(e)
-		case *events.AutocompleteInteractionCreate:
-			h.handleAutocomplete(e)
-		case *events.ComponentInteractionCreate:
-			h.handleComponent(e)
-		case *events.ModalSubmitInteractionCreate:
-			h.handleModal(e)
-		case *events.MessageCreate:
-			h.handleMessage(e)
-		case *events.Ready:
-			h.handleReady(e)
-		case *events.GuildMemberJoin:
-			h.handlerMemberJoin(e)
-		case *events.GuildMemberLeave:
-			h.handlerMemberLeave(e)
-		}
-	}()
+	if h.ASync {
+		go func() {
+			if !h.IsDebug {
+				defer func() {
+					if err := recover(); err != nil {
+						h.Logger.Errorf("panic: %s", err)
+					}
+				}()
+			}
+			h.onEvent(event)
+		}()
+	} else {
+		h.onEvent(event)
+	}
+}
+
+func (h *Handler) onEvent(event bot.Event) {
+	switch e := event.(type) {
+	case *events.ApplicationCommandInteractionCreate:
+		h.handleCommand(e)
+	case *events.AutocompleteInteractionCreate:
+		h.handleAutocomplete(e)
+	case *events.ComponentInteractionCreate:
+		h.handleComponent(e)
+	case *events.ModalSubmitInteractionCreate:
+		h.handleModal(e)
+	case *events.MessageCreate:
+		h.handleMessage(e)
+	case *events.Ready:
+		h.handleReady(e)
+	case *events.GuildMemberJoin:
+		h.handlerMemberJoin(e)
+	case *events.GuildMemberLeave:
+		h.handlerMemberLeave(e)
+	}
 }

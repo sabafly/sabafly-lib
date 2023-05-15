@@ -12,7 +12,7 @@ type (
 
 type Message struct {
 	UUID      uuid.UUID
-	ChannelID snowflake.ID
+	ChannelID *snowflake.ID
 	AuthorID  *snowflake.ID
 	Check     Check[*events.MessageCreate]
 	Handler   MessageHandler
@@ -23,9 +23,8 @@ func (h *Handler) handleMessage(event *events.MessageCreate) {
 		return
 	}
 	h.Logger.Debugf("メッセージ作成 %d", event.ChannelID)
-	channelID := event.ChannelID
 	for _, m := range h.Message {
-		if m.ChannelID != channelID {
+		if m.ChannelID != nil && *m.ChannelID != event.ChannelID {
 			h.Logger.Debug("チャンネルが違います")
 			continue
 		}

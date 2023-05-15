@@ -79,6 +79,7 @@ var defaultConfig = Config{
 	Token:              "YOUR TOKEN HERE",
 	DMPermission:       false,
 	ShouldSyncCommands: true,
+	ASyncEventHandler:  false,
 	DBConfig: db.DBConfig{
 		Host: "localhost",
 		Port: "6379",
@@ -104,6 +105,7 @@ type Config struct {
 	Token              string         `json:"token"`
 	DMPermission       bool           `json:"dm_permission"`
 	ShouldSyncCommands bool           `json:"sync_commands"`
+	ASyncEventHandler  bool           `json:"async_event_handler"`
 	DBConfig           db.DBConfig    `json:"db_config"`
 	Dislog             DislogConfig   `json:"dislog"`
 	ClientID           snowflake.ID   `json:"client_id"`
