@@ -18,8 +18,6 @@ package translate
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
 	"os"
 	"strings"
 
@@ -38,11 +36,6 @@ var (
 func SetDefaultLanguage(lang language.Tag) {
 	defaultLang = lang
 }
-
-var (
-	Release        bool = false
-	translate_path string
-)
 
 type Cfg struct {
 	Fallback         string
@@ -72,7 +65,6 @@ func LoadTranslations(dir_path string) (*i18n.Bundle, error) {
 	if err != nil {
 		panic(err)
 	}
-	translate_path = dir_path
 	for _, de := range fd {
 		_, err := bundle.LoadMessageFile(dir_path + "/" + de.Name())
 		if err != nil {
@@ -106,9 +98,8 @@ func TranslateWithFallBack(locale discord.Locale, messageId string, templateData
 }
 
 func Translates(locale discord.Locale, messageId string, templateData any, pluralCount int, opts ...Option) string {
-	messageId = strings.ReplaceAll(messageId, ".", "_")
-	Localizer := i18n.NewLocalizer(translations, string(locale))
-	res, err := Localizer.Localize(&i18n.LocalizeConfig{
+	localizer := i18n.NewLocalizer(translations, string(locale))
+	res, err := localizer.Localize(&i18n.LocalizeConfig{
 		MessageID:    messageId,
 		TemplateData: templateData,
 		PluralCount:  pluralCount,
@@ -119,8 +110,8 @@ func Translates(locale discord.Locale, messageId string, templateData any, plura
 		o(opt)
 	}
 	if err != nil {
-		Localizer = i18n.NewLocalizer(translations, string(opt.FallbackLanguage))
-		res, err = Localizer.Localize(&i18n.LocalizeConfig{
+		localizer = i18n.NewLocalizer(translations, string(opt.FallbackLanguage))
+		res, err = localizer.Localize(&i18n.LocalizeConfig{
 			MessageID:    messageId,
 			TemplateData: templateData,
 			PluralCount:  pluralCount,
@@ -129,19 +120,6 @@ func Translates(locale discord.Locale, messageId string, templateData any, plura
 			res = messageId
 			if opt.Fallback != "" {
 				res = opt.Fallback
-				if !Release && translate_path != "" {
-					file, err := os.OpenFile(translate_path+"/"+defaultLang.String()+".yaml", os.O_CREATE|os.O_RDWR|os.O_APPEND, os.ModeTemporary)
-					if err != nil {
-						return res
-					}
-					defer file.Close()
-					_, _ = file.WriteString(fmt.Sprintf("%s: \"%s\"\n", messageId, opt.Fallback))
-					buf, err := io.ReadAll(file)
-					if err != nil {
-						return res
-					}
-					_, _ = translations.ParseMessageFileBytes(buf, translate_path+"/"+defaultLang.String()+".yaml")
-				}
 			}
 		}
 	}

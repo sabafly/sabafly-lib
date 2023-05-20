@@ -120,13 +120,13 @@ func WithFallBackDescription(desc string) ReturnErrOption {
 }
 
 func ReturnErrMessage(interaction responsibleInteraction, tr string, opts ...ReturnErrOption) error {
+	embeds := ErrorMessageEmbed(interaction.Locale(), tr, opts...)
+	embeds = SetEmbedsProperties(embeds)
+	var flags discord.MessageFlags
 	cfg := new(ReturnErrCfg)
 	for _, reo := range opts {
 		reo(cfg)
 	}
-	embeds := ErrorMessageEmbed(interaction.Locale(), tr, cfg.FallBackTitle, cfg.FallBackDescription, cfg.TranslateData...)
-	embeds = SetEmbedsProperties(embeds)
-	var flags discord.MessageFlags
 	if cfg.Ephemeral {
 		flags = discord.MessageFlagEphemeral
 	}
@@ -145,15 +145,19 @@ func ReturnErrMessageEphemeral(interaction responsibleInteraction, tr, fallback_
 }
 
 // エラーメッセージ埋め込みを作成する
-func ErrorMessageEmbed(locale discord.Locale, t, fallback_title, fallback_description string, data ...any) []discord.Embed {
+func ErrorMessageEmbed(locale discord.Locale, t string, opts ...ReturnErrOption) []discord.Embed {
+	cfg := new(ReturnErrCfg)
+	for _, reo := range opts {
+		reo(cfg)
+	}
 	var td any
-	if len(data) != 0 {
-		td = data[0]
+	if len(cfg.TranslateData) != 0 {
+		td = cfg.TranslateData[0]
 	}
 	embeds := []discord.Embed{
 		{
-			Title:       translate.Message(locale, t+"_title", translate.WithFallback(fallback_title)),
-			Description: translate.Translate(locale, t+"_message", td, translate.WithFallback(fallback_description)),
+			Title:       translate.Message(locale, t+"_title", translate.WithFallback(cfg.FallBackTitle)),
+			Description: translate.Translate(locale, t+"_message", td, translate.WithFallback(cfg.FallBackDescription)),
 			Color:       0xff0000,
 		},
 	}
