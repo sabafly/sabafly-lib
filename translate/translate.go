@@ -18,6 +18,7 @@ package translate
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 
@@ -29,8 +30,11 @@ import (
 )
 
 var (
-	defaultLang               = language.Japanese
-	translations *i18n.Bundle = i18n.NewBundle(defaultLang)
+	defaultLang     language.Tag    = language.Japanese
+	translations    *i18n.Bundle    = i18n.NewBundle(defaultLang)
+	localizer       *i18n.Localizer = i18n.NewLocalizer(translations)
+	IsWriteFallBack bool            = false
+	lang_path       string
 )
 
 func SetDefaultLanguage(lang language.Tag) {
@@ -72,8 +76,46 @@ func LoadTranslations(dir_path string) (*i18n.Bundle, error) {
 		}
 	}
 	translations = bundle
+	lang_path = dir_path
+	localizer = i18n.NewLocalizer(translations, locales...)
 	return bundle, nil
 }
+
+var (
+	locales = []string{
+		"en-US",
+		"en-GB",
+		"bg",
+		"zh-CN",
+		"zh-TW",
+		"hr",
+		"cs",
+		"da",
+		"nl",
+		"fi",
+		"fr",
+		"de",
+		"el",
+		"hi",
+		"hu",
+		"id",
+		"it",
+		"ja",
+		"ko",
+		"lt",
+		"no",
+		"pl",
+		"pt-BR",
+		"ro",
+		"ru",
+		"es-ES",
+		"sv-SE",
+		"th",
+		"tr",
+		"uk",
+		"vi",
+	}
+)
 
 func Message(locale discord.Locale, messageId string, opts ...Option) (res string) {
 	res = Translate(locale, messageId, map[string]any{}, opts...)
@@ -98,7 +140,6 @@ func TranslateWithFallBack(locale discord.Locale, messageId string, templateData
 }
 
 func Translates(locale discord.Locale, messageId string, templateData any, pluralCount int, opts ...Option) string {
-	localizer := i18n.NewLocalizer(translations, string(locale))
 	res, err := localizer.Localize(&i18n.LocalizeConfig{
 		MessageID:    messageId,
 		TemplateData: templateData,
@@ -110,16 +151,16 @@ func Translates(locale discord.Locale, messageId string, templateData any, plura
 		o(opt)
 	}
 	if err != nil {
-		localizer = i18n.NewLocalizer(translations, string(opt.FallbackLanguage))
-		res, err = localizer.Localize(&i18n.LocalizeConfig{
-			MessageID:    messageId,
-			TemplateData: templateData,
-			PluralCount:  pluralCount,
-		})
-		if err != nil {
-			res = messageId
-			if opt.Fallback != "" {
-				res = opt.Fallback
+		res = messageId
+		if opt.Fallback != "" {
+			res = opt.Fallback
+			if IsWriteFallBack {
+				f, err := os.Create(lang_path + "/" + locale.Code() + ".yaml")
+				if err != nil {
+					return res
+				}
+				defer f.Close()
+				_, _ = f.WriteString(fmt.Sprintf("%s: %s\n", messageId, opt.Fallback))
 			}
 		}
 	}
