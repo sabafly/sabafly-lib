@@ -1,7 +1,6 @@
 package api
 
 import (
-	"net/http"
 	"sync"
 
 	"github.com/gin-gonic/gin"
@@ -14,6 +13,7 @@ type Server[T any] struct {
 	gin      *gin.Engine
 	PageTree *Page[T]
 	NoRoute  []gin.HandlerFunc
+	NoMethod []gin.HandlerFunc
 
 	Client T
 }
@@ -47,9 +47,7 @@ func (s *Server[T]) Serve(addr ...string) (err error) {
 	s.gin.Use(gin.Logger())
 	s.gin.HandleMethodNotAllowed = true
 	s.gin.NoRoute(s.NoRoute...)
-	s.gin.NoMethod(func(c *gin.Context) {
-		c.JSON(http.StatusMethodNotAllowed, gin.H{"message": "405: Method Not Allowed", "code": 0})
-	})
+	s.gin.NoMethod(s.NoMethod...)
 	s.PageTree.Parse(s, s.gin)
 	return s.gin.Run(addr...)
 }
