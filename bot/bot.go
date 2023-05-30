@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sabafly/sabafly-lib/handler"
+	"github.com/sabafly/sabafly-lib/v2/handler"
 
 	"github.com/disgoorg/disgo"
 	"github.com/disgoorg/disgo/bot"

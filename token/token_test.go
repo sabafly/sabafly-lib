@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/disgoorg/snowflake/v2"
-	"github.com/sabafly/sabafly-lib/token"
+	"github.com/sabafly/sabafly-lib/v2/token"
 )
 
 func TestTokenGen(t *testing.T) {

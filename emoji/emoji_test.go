@@ -3,7 +3,7 @@ package emoji_test
 import (
 	"testing"
 
-	"github.com/sabafly/sabafly-lib/emoji"
+	"github.com/sabafly/sabafly-lib/v2/emoji"
 )
 
 func TestEmoji(t *testing.T) {

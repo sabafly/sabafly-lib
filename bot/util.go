@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sabafly/sabafly-lib/emoji"
-	"github.com/sabafly/sabafly-lib/translate"
+	"github.com/sabafly/sabafly-lib/v2/emoji"
+	"github.com/sabafly/sabafly-lib/v2/translate"
 
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"

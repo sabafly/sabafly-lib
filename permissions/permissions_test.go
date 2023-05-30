@@ -3,7 +3,7 @@ package permissions_test
 import (
 	"testing"
 
-	"github.com/sabafly/sabafly-lib/permissions"
+	"github.com/sabafly/sabafly-lib/v2/permissions"
 )
 
 func TestPerm(t *testing.T) {
