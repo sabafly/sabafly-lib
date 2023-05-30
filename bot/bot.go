@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sabafly/sabafly-lib/db"
 	"github.com/sabafly/sabafly-lib/handler"
 
 	"github.com/disgoorg/disgo"
@@ -35,8 +34,8 @@ import (
 	"github.com/disgoorg/paginator"
 )
 
-func New[DB db.DB](logger log.Logger, version string, config Config) *Bot[DB] {
-	return &Bot[DB]{
+func New[T any](logger log.Logger, version string, config Config) *Bot[T] {
+	return &Bot[T]{
 		Logger:    logger,
 		Config:    config,
 		OAuth:     oauth2.New(config.ClientID, config.Secret, oauth2.WithLogger(logger)),
@@ -46,7 +45,7 @@ func New[DB db.DB](logger log.Logger, version string, config Config) *Bot[DB] {
 	}
 }
 
-type Bot[DB db.DB] struct {
+type Bot[T any] struct {
 	Logger    log.Logger
 	Client    bot.Client
 	OAuth     oauth2.Client
@@ -54,10 +53,10 @@ type Bot[DB db.DB] struct {
 	Config    Config
 	Version   string
 	Handler   *handler.Handler
-	DB        DB
+	Self      T
 }
 
-func (b *Bot[DB]) SetupBot(listeners ...bot.EventListener) {
+func (b *Bot[T]) SetupBot(listeners ...bot.EventListener) {
 	var err error
 	b.Client, err = disgo.New(b.Config.Token,
 		bot.WithLogger(b.Logger),
@@ -71,26 +70,26 @@ func (b *Bot[DB]) SetupBot(listeners ...bot.EventListener) {
 	}
 }
 
-func (b *Bot[DB]) OnGuildJoin(g *events.GuildJoin) {
+func (b *Bot[T]) OnGuildJoin(g *events.GuildJoin) {
 	b.Logger.Infof("[#%d]ギルド参加 %3dメンバー 作成 %s 名前 %s(%d)", g.ShardID(), g.Guild.MemberCount, g.Guild.CreatedAt().String(), g.Guild.Name, g.GuildID)
 	go b.RefreshPresence()
 }
 
-func (b *Bot[DB]) OnGuildLeave(g *events.GuildLeave) {
+func (b *Bot[T]) OnGuildLeave(g *events.GuildLeave) {
 	b.Logger.Infof("[#%d]ギルド脱退 %3dメンバー 作成 %s 名前 %s(%d)", g.ShardID(), g.Guild.MemberCount, g.Guild.CreatedAt().String(), g.Guild.Name, g.GuildID)
 	b.Client.Caches().RemoveGuild(g.GuildID)
 	b.Client.Caches().RemoveMembersByGuildID(g.GuildID)
 	go b.RefreshPresence()
 }
 
-func (b *Bot[DB]) OnGuildMemberJoin(m *events.GuildMemberJoin) {
+func (b *Bot[T]) OnGuildMemberJoin(m *events.GuildMemberJoin) {
 	if g, ok := m.Client().Caches().Guild(m.GuildID); ok {
 		b.Logger.Infof("[#%d]ギルドメンバー参加 %32s#%s(%d) ギルド %s(%d) %3d メンバー", m.ShardID(), m.Member.User.Username, m.Member.User.Discriminator, m.Member.User.ID, g.Name, g.ID, g.MemberCount)
 	}
 	go b.RefreshPresence()
 }
 
-func (b *Bot[DB]) OnGuildMemberLeave(m *events.GuildMemberLeave) {
+func (b *Bot[T]) OnGuildMemberLeave(m *events.GuildMemberLeave) {
 	if g, ok := m.Client().Caches().Guild(m.GuildID); ok {
 		b.Logger.Infof("[#%d]ギルドメンバー脱退 %32s#%s(%d) ギルド %s(%d) %3d メンバー", m.ShardID(), m.Member.User.Username, m.Member.User.Discriminator, m.Member.User.ID, g.Name, g.ID, g.MemberCount)
 	}
@@ -98,7 +97,7 @@ func (b *Bot[DB]) OnGuildMemberLeave(m *events.GuildMemberLeave) {
 	go b.RefreshPresence()
 }
 
-func (b *Bot[DB]) RefreshPresence() {
+func (b *Bot[T]) RefreshPresence() {
 	var (
 		guilds int = b.Client.Caches().GuildsLen()
 		users  int = b.Client.Caches().MembersAllLen()

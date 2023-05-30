@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 	"runtime/debug"
-	"sort"
 	"strings"
 	"time"
 
+	"github.com/sabafly/sabafly-lib/emoji"
 	"github.com/sabafly/sabafly-lib/translate"
 
 	"github.com/disgoorg/disgo/bot"
@@ -71,7 +70,7 @@ func ReturnErr(interaction responsibleInteraction, err error, opts ...ReturnErrO
 	}
 	embeds := ErrorTraceEmbed(interaction.Locale(), err)
 	embeds = SetEmbedsProperties(embeds)
-	if err := interaction.CreateMessage(discord.MessageCreate{
+	if err2 := interaction.CreateMessage(discord.MessageCreate{
 		Embeds: embeds,
 		Flags: func() discord.MessageFlags {
 			if cfg.Ephemeral {
@@ -80,8 +79,8 @@ func ReturnErr(interaction responsibleInteraction, err error, opts ...ReturnErrO
 				return 0
 			}
 		}(),
-	}); err != nil {
-		return err
+	}); err2 != nil {
+		return fmt.Errorf("%w: %w", err, err2)
 	}
 	return err
 }
@@ -139,11 +138,6 @@ func ReturnErrMessage(interaction responsibleInteraction, tr string, opts ...Ret
 	return nil
 }
 
-// Deprecated: use ReturnErrMessage() with WithEphemeral()
-func ReturnErrMessageEphemeral(interaction responsibleInteraction, tr, fallback_title, fallback_description string, ephemeral bool, data ...any) error {
-	return ReturnErrMessage(interaction, tr, WithFallbackTitle(fallback_title), WithFallBackDescription(fallback_description), WithEphemeral(ephemeral), WithTranslateData(data...))
-}
-
 // エラーメッセージ埋め込みを作成する
 func ErrorMessageEmbed(locale discord.Locale, t string, opts ...ReturnErrOption) []discord.Embed {
 	cfg := new(ReturnErrCfg)
@@ -177,14 +171,6 @@ func ErrorTraceEmbed(locale discord.Locale, err error) []discord.Embed {
 	}
 	embeds = SetEmbedsProperties(embeds)
 	return embeds
-}
-
-// エラーが発生したことを返すレスポンスを作成する
-// Deprecated: use ErrorTraceEmbed()
-func ErrorRespond(locale discord.Locale, err error) discord.MessageCreate {
-	return discord.MessageCreate{
-		Embeds: ErrorTraceEmbed(locale, err),
-	}
 }
 
 // 渡されたステータスの絵文字を返す
@@ -224,41 +210,6 @@ func ActivitiesNameString(locale discord.Locale, activity discord.Activity) (str
 		str = translate.Translate(locale, "activity_competing_name", map[string]any{"Name": activity.Name})
 	}
 	return str
-}
-
-func MessageLogDetails(m []MessageLog) (day, week, all int, channelID snowflake.ID) {
-	var inDay, inWeek []MessageLog
-	channelCount := map[snowflake.ID]int{}
-	for _, ml := range m {
-		channelCount[ml.ChannelID]++
-		timestamp := ml.ID.Time()
-		if timestamp.After(time.Now().Add(-time.Hour * 24 * 7)) {
-			inWeek = append(inWeek, ml)
-		}
-	}
-	for _, ml := range inWeek {
-		timestamp := ml.ID.Time()
-		if timestamp.After(time.Now().Add(-time.Hour * 24)) {
-			inDay = append(inDay, ml)
-		}
-	}
-	count := []struct {
-		ID    snowflake.ID
-		Count int
-	}{}
-	for k, v := range channelCount {
-		count = append(count, struct {
-			ID    snowflake.ID
-			Count int
-		}{ID: k, Count: v})
-	}
-	sort.Slice(count, func(i, j int) bool {
-		return count[i].Count > count[j].Count
-	})
-	if len(count) != 0 {
-		channelID = count[0].ID
-	}
-	return len(inDay), len(inWeek), len(m), channelID
 }
 
 func SendWebhook(client bot.Client, channelID snowflake.ID, data discord.WebhookMessageCreate) (st *discord.Message, err error) {
@@ -325,11 +276,9 @@ func SendWebhook(client bot.Client, channelID snowflake.ID, data discord.Webhook
 	return st, nil
 }
 
-var EmojiRegex = regexp.MustCompile(`<(a|):[A-z0-9_~]+:[0-9]{18,20}>`)
-
 func GetCustomEmojis(str string) []discord.Emoji {
 	var toReturn []discord.Emoji
-	emojis := EmojiRegex.FindAllString(str, -1)
+	emojis := emoji.DiscordEmoji.FindAllString(str, -1)
 	if len(emojis) < 1 {
 		return toReturn
 	}
@@ -345,22 +294,22 @@ func GetCustomEmojis(str string) []discord.Emoji {
 }
 
 func ParseComponentEmoji(str string) discord.ComponentEmoji {
-	emoji := discord.ComponentEmoji{
+	e := discord.ComponentEmoji{
 		Name: str,
 	}
-	if !EmojiRegex.MatchString(str) {
-		return emoji
+	if !emoji.MatchString(str) {
+		return e
 	}
 	emojis := GetCustomEmojis(str)
 	if len(emojis) < 1 {
-		return emoji
+		return e
 	}
-	emoji = discord.ComponentEmoji{
+	e = discord.ComponentEmoji{
 		ID:       emojis[0].ID,
 		Name:     emojis[0].Name,
 		Animated: emojis[0].Animated,
 	}
-	return emoji
+	return e
 }
 
 func Number2Emoji(n int) string {

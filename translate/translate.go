@@ -122,20 +122,8 @@ func Message(locale discord.Locale, messageId string, opts ...Option) (res strin
 	return
 }
 
-// Deprecated: Use Message() with WithFallback()
-func MessageWithFallBack(locale discord.Locale, messageId, fallback string) (res string) {
-	res = Translate(locale, messageId, map[string]any{}, WithFallback(fallback))
-	return
-}
-
 func Translate(locale discord.Locale, messageId string, templateData any, opt ...Option) (res string) {
 	res = Translates(locale, messageId, templateData, 2, opt...)
-	return
-}
-
-// Deprecated: Use Translate() with WithFallback()
-func TranslateWithFallBack(locale discord.Locale, messageId string, templateData any, fallback string) (res string) {
-	res = Translates(locale, messageId, templateData, 2, WithFallback(fallback))
 	return
 }
 

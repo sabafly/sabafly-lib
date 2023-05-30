@@ -7,8 +7,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sabafly/sabafly-lib/db"
-
 	"github.com/disgoorg/json"
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/pelletier/go-toml/v2"
@@ -78,11 +76,6 @@ var defaultConfig = Config{
 	DMPermission:       false,
 	ShouldSyncCommands: true,
 	ASyncEventHandler:  false,
-	DBConfig: db.DBConfig{
-		Host: "localhost",
-		Port: "6379",
-		DB:   0,
-	},
 	Dislog: DislogConfig{
 		Enabled:        false,
 		WebhookChannel: 0,
@@ -104,7 +97,6 @@ type Config struct {
 	DMPermission       bool           `json:"dm_permission"`
 	ShouldSyncCommands bool           `json:"sync_commands"`
 	ASyncEventHandler  bool           `json:"async_event_handler"`
-	DBConfig           db.DBConfig    `json:"db_config"`
 	Dislog             DislogConfig   `json:"dislog"`
 	ClientID           snowflake.ID   `json:"client_id"`
 	Secret             string         `json:"secret"`

@@ -8,7 +8,7 @@ const (
 	// ライブラリの名前
 	Name = "sabafly-lib"
 	// ライブラリのモジュール名
-	Module = "github.com/sabafly/sabafly-lib"
+	Module = "github.com/sabafly/sabafly-lib/v2"
 	// ライブラリのGitHubリポジトリのリンク
 	GitHub = "https://github.com/sabafly/sabafly-lib"
 )
