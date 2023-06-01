@@ -224,9 +224,22 @@ func SendWebhook(client bot.Client, channelID snowflake.ID, data discord.Webhook
 	var webhook discord.Webhook = nil
 	for _, w := range webhooks {
 		switch v := w.(type) {
-		case *discord.IncomingWebhook:
-			token = v.Token
-			webhook = v
+		case discord.IncomingWebhook:
+			if v.User.ID == me.User.ID {
+				token = v.Token
+				webhook = v
+				if data.Username == "" {
+					data.Username = me.Username
+				}
+				if data.AvatarURL == "" {
+					data.AvatarURL = me.EffectiveAvatarURL(discord.WithFormat(discord.ImageFormatPNG))
+				}
+				st, err = client.Rest().CreateWebhookMessage(webhook.ID(), token, data, true, snowflake.ID(0))
+				if err != nil {
+					return nil, err
+				}
+				return st, nil
+			}
 		}
 	}
 	if webhook == nil {
@@ -262,6 +275,51 @@ func SendWebhook(client bot.Client, channelID snowflake.ID, data discord.Webhook
 		return nil, err
 	}
 	return st, nil
+}
+
+func GetWebhook(client bot.Client, channelID snowflake.ID) (id snowflake.ID, token string, err error) {
+	webhooks, err := client.Rest().GetWebhooks(channelID)
+	if err != nil {
+		return 0, "", err
+	}
+	me, ok := client.Caches().SelfUser()
+	if !ok {
+		return 0, "", err
+	}
+	var webhook discord.Webhook = nil
+	for _, w := range webhooks {
+		switch v := w.(type) {
+		case discord.IncomingWebhook:
+			if v.User.ID == me.User.ID {
+				token = v.Token
+				webhook = v
+				return webhook.ID(), token, nil
+			}
+		}
+	}
+	if webhook == nil {
+		var buf []byte
+		if avatarURL := me.EffectiveAvatarURL(discord.WithFormat(discord.ImageFormatPNG)); avatarURL != "" {
+			resp, err := http.Get(avatarURL)
+			if err != nil {
+				return 0, "", fmt.Errorf("error on get: %w", err)
+			}
+			buf, err = io.ReadAll(resp.Body)
+			if err != nil {
+				return 0, "", fmt.Errorf("error on read all: %w", err)
+			}
+		}
+		data, err := client.Rest().CreateWebhook(channelID, discord.WebhookCreate{
+			Name:   BotName + "-webhook",
+			Avatar: discord.NewIconRaw(discord.IconTypePNG, buf),
+		})
+		if err != nil {
+			return 0, "", fmt.Errorf("error on create webhook: %w", err)
+		}
+		token = data.Token
+		webhook = data
+	}
+	return webhook.ID(), token, nil
 }
 
 func GetCustomEmojis(str string) []discord.Emoji {

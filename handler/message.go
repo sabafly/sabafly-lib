@@ -37,7 +37,7 @@ func (h *Handler) handleMessage(event *events.MessageCreate) {
 			continue
 		}
 		if err := m.Handler(event); err != nil {
-			h.Logger.Errorf("Failed to handle message \"%d\" in \"%s\": %s", event.MessageID, event.GuildID, event.ChannelID)
+			h.Logger.Errorf("Failed to handle message \"%d\" in \"%s\", %s: %s", event.MessageID, event.GuildID, event.ChannelID, err.Error())
 		}
 	}
 }
