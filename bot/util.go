@@ -1,7 +1,6 @@
 package botlib
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -224,21 +223,10 @@ func SendWebhook(client bot.Client, channelID snowflake.ID, data discord.Webhook
 	var token string
 	var webhook discord.Webhook = nil
 	for _, w := range webhooks {
-		if w.Type() != discord.WebhookTypeIncoming {
-			continue
-		}
-		buf, err := w.MarshalJSON()
-		if err != nil {
-			continue
-		}
-		data := discord.IncomingWebhook{}
-		err = json.Unmarshal(buf, &data)
-		if err != nil {
-			return nil, err
-		}
-		if data.User.ID == client.ID() {
-			token = data.Token
-			webhook = data
+		switch v := w.(type) {
+		case *discord.IncomingWebhook:
+			token = v.Token
+			webhook = v
 		}
 	}
 	if webhook == nil {
@@ -246,11 +234,11 @@ func SendWebhook(client bot.Client, channelID snowflake.ID, data discord.Webhook
 		if avatarURL := me.EffectiveAvatarURL(discord.WithFormat(discord.ImageFormatPNG)); avatarURL != "" {
 			resp, err := http.Get(avatarURL)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error on get: %w", err)
 			}
 			buf, err = io.ReadAll(resp.Body)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error on read all: %w", err)
 			}
 		}
 		data, err := client.Rest().CreateWebhook(channelID, discord.WebhookCreate{
@@ -258,7 +246,7 @@ func SendWebhook(client bot.Client, channelID snowflake.ID, data discord.Webhook
 			Avatar: discord.NewIconRaw(discord.IconTypePNG, buf),
 		})
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error on create webhook: %w", err)
 		}
 		token = data.Token
 		webhook = data
