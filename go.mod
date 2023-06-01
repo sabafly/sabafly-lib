@@ -9,7 +9,7 @@ require (
 	github.com/disgoorg/paginator v0.0.0-20230104145353-f988d828ede9
 	github.com/disgoorg/snowflake/v2 v2.0.1
 	github.com/forPelevin/gomoji v1.1.8
-	github.com/gin-gonic/gin v1.9.0
+	github.com/gin-gonic/gin v1.9.1
 	github.com/google/uuid v1.3.0
 	github.com/nicksnyder/go-i18n/v2 v2.2.1
 	github.com/pelletier/go-toml/v2 v2.0.8
