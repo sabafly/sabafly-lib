@@ -31,8 +31,8 @@ import (
 
 var (
 	defaultLang     language.Tag    = language.Japanese
-	translations    *i18n.Bundle    = i18n.NewBundle(defaultLang)
-	localizer       *i18n.Localizer = i18n.NewLocalizer(translations)
+	bundle          *i18n.Bundle    = i18n.NewBundle(defaultLang)
+	localizer       *i18n.Localizer = i18n.NewLocalizer(bundle)
 	IsWriteFallBack bool            = false
 	lang_path       string
 )
@@ -61,23 +61,22 @@ func WithFallBackLanguage(lang discord.Locale) Option {
 }
 
 func LoadTranslations(dir_path string) (*i18n.Bundle, error) {
-	bundle := i18n.NewBundle(defaultLang)
+	bundle = i18n.NewBundle(defaultLang)
 	bundle.RegisterUnmarshalFunc("yaml", yaml.Unmarshal)
 	bundle.RegisterUnmarshalFunc("json", json.Unmarshal)
 	bundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
 	fd, err := os.ReadDir(dir_path)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	for _, de := range fd {
 		_, err := bundle.LoadMessageFile(dir_path + "/" + de.Name())
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 	}
-	translations = bundle
 	lang_path = dir_path
-	localizer = i18n.NewLocalizer(translations, locales...)
+	localizer = i18n.NewLocalizer(bundle, locales...)
 	return bundle, nil
 }
 
