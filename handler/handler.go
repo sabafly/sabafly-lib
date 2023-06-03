@@ -57,6 +57,7 @@ type Handler struct {
 	DevGuildID []snowflake.ID
 	IsDebug    bool
 	ASync      bool
+	IsLogEvent bool
 }
 
 func (h *Handler) AddExclude(ids ...snowflake.ID) {
@@ -94,6 +95,12 @@ func (h *Handler) AddMessage(message Message) func() {
 	h.Message[message.UUID] = message
 	return func() {
 		delete(h.Message, message.UUID)
+	}
+}
+
+func (h *Handler) AddMessages(messages ...Message) {
+	for _, message := range messages {
+		h.Message[message.UUID] = message
 	}
 }
 

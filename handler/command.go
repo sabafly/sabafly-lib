@@ -23,6 +23,18 @@ type Command struct {
 }
 
 func (h *Handler) handleCommand(event *events.ApplicationCommandInteractionCreate) {
+	if h.IsLogEvent {
+		switch d := event.Data.(type) {
+		case discord.SlashCommandInteractionData:
+			h.Logger.Infof("%s(%s) used %s command type %d", event.Member().User.Tag(), event.Member().User.ID, d.CommandPath(), d.Type())
+		case discord.UserCommandInteractionData:
+			h.Logger.Infof("%s(%s) used %s command target %s type %d", event.Member().User.Tag(), event.Member().User.ID, d.CommandName(), d.TargetID(), d.Type())
+		case discord.MessageCommandInteractionData:
+			h.Logger.Infof("%s(%s) used %s command target %s type %d", event.Member().User.Tag(), event.Member().User.ID, d.CommandName(), d.TargetMessage().JumpURL(), d.Type())
+		default:
+			h.Logger.Infof("%s(%s) used %s command type %d", event.Member().User.Tag(), event.Member().User.ID, d.CommandName(), d.Type())
+		}
+	}
 	name := event.Data.CommandName()
 	h.Logger.Debugf("command created %s", name)
 	cmd, ok := h.Commands[name]

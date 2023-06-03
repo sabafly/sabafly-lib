@@ -16,6 +16,9 @@ type Modal struct {
 }
 
 func (h *Handler) handleModal(event *events.ModalSubmitInteractionCreate) {
+	if h.IsLogEvent {
+		h.Logger.Infof("%s(%s) used %d modal", event.Member().User.Tag(), event.Member().User.ID, event.Data.CustomID)
+	}
 	customID := event.Data.CustomID
 	h.Logger.Debugf("モーダル提出インタラクション呼び出し %s", customID)
 	if !strings.HasPrefix(customID, "handler:") {
