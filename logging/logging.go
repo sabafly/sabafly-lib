@@ -13,20 +13,20 @@ import (
 )
 
 func New(cfg Config) (*Logging, error) {
-	_ = os.Mkdir(filepath.Clean(cfg.FilePath), os.ModeDir)
-	o, err := os.Open(filepath.Join(cfg.FilePath, "latest.log"))
+	_ = os.Mkdir(filepath.Clean(cfg.LogPath), os.ModeDir)
+	o, err := os.Open(filepath.Join(cfg.LogPath, "latest.log"))
 	if err == nil {
 		fi, err := o.Stat()
 		if err != nil {
 			return nil, err
 		}
 		seq := 1
-		_, err = os.Open(filepath.Join(cfg.FilePath, fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), seq)))
+		_, err = os.Open(filepath.Join(cfg.LogPath, fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), seq)))
 		for !os.IsNotExist(err) {
 			seq++
-			_, err = os.Open(filepath.Join(cfg.FilePath, fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), seq)))
+			_, err = os.Open(filepath.Join(cfg.LogPath, fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), seq)))
 		}
-		tg, err := os.Create(filepath.Join(cfg.FilePath, fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), seq)))
+		tg, err := os.Create(filepath.Join(cfg.LogPath, fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), seq)))
 		if err != nil {
 			return nil, err
 		}
@@ -42,7 +42,7 @@ func New(cfg Config) (*Logging, error) {
 		}
 		o.Close()
 	}
-	f, err := os.Create(filepath.Join(cfg.FilePath, "latest.log"))
+	f, err := os.Create(filepath.Join(cfg.LogPath, "latest.log"))
 	if err != nil {
 		return nil, err
 	}
@@ -77,19 +77,23 @@ func (l *Logging) Levels() []logrus.Level {
 }
 
 func (l *Logging) Fire(entry *logrus.Entry) error {
+	return l.Log(entry.Level.String(), entry.Message, entry.Time)
+}
+
+func (l *Logging) Log(lvl, message string, t time.Time) error {
 	l.Lock()
 	defer l.Unlock()
 	if l.fileCreatedTime.Before(time.Now().Add(time.Hour * -3)) {
-		if l.fileCreatedTime.Day() != entry.Time.Day() {
+		if l.fileCreatedTime.Day() != t.Day() {
 			l.seq = 0
 		}
 		l.seq++
-		_, err := os.Open(filepath.Join(l.config.FilePath, fmt.Sprintf("%s-%d.gz", time.Now().Format(time.DateOnly), l.seq)))
+		_, err := os.Open(filepath.Join(l.config.LogPath, fmt.Sprintf("%s-%d.gz", time.Now().Format(time.DateOnly), l.seq)))
 		for !os.IsNotExist(err) {
 			l.seq++
-			_, err = os.Open(filepath.Join(l.config.FilePath, fmt.Sprintf("%s-%d.gz", time.Now().Format(time.DateOnly), l.seq)))
+			_, err = os.Open(filepath.Join(l.config.LogPath, fmt.Sprintf("%s-%d.gz", time.Now().Format(time.DateOnly), l.seq)))
 		}
-		tg, err := os.Create(filepath.Join(l.config.FilePath, fmt.Sprintf("%s-%d.gz", time.Now().Format(time.DateOnly), l.seq)))
+		tg, err := os.Create(filepath.Join(l.config.LogPath, fmt.Sprintf("%s-%d.gz", time.Now().Format(time.DateOnly), l.seq)))
 		if err != nil {
 			return nil
 		}
@@ -104,8 +108,8 @@ func (l *Logging) Fire(entry *logrus.Entry) error {
 			return err
 		}
 		l.Close()
-		_ = os.Remove(filepath.Join(l.config.FilePath, "latest.log"))
-		f, err := os.Create(filepath.Join(l.config.FilePath, "latest.log"))
+		_ = os.Remove(filepath.Join(l.config.LogPath, "latest.log"))
+		f, err := os.Create(filepath.Join(l.config.LogPath, "latest.log"))
 		if err != nil {
 			return err
 		}
@@ -117,7 +121,7 @@ func (l *Logging) Fire(entry *logrus.Entry) error {
 		l.fileInfo = fi
 		l.fileCreatedTime = fi.ModTime()
 	}
-	_, err := l.file.WriteString(fmt.Sprintf("[%s] [%s]: %s\n", entry.Time.Format(time.TimeOnly), entry.Level.String(), entry.Message))
+	_, err := l.file.WriteString(fmt.Sprintf("[%s] [%s]: %s\n", t.Format(time.TimeOnly), lvl, message))
 	if err != nil {
 		return err
 	}

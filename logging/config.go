@@ -3,7 +3,8 @@ package logging
 import "github.com/sirupsen/logrus"
 
 type Config struct {
-	FilePath string `json:"file_path"`
+	LogPath string `json:"log_path"`
+	LogName string `json:"log_name"`
 
 	LogLevels []logrus.Level `json:"log_levels"`
 }
