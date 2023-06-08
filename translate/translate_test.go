@@ -3,7 +3,7 @@ package translate_test
 import (
 	"testing"
 
-	"github.com/disgoorg/disgo/discord"
+	"github.com/sabafly/disgo/discord"
 	"github.com/sabafly/sabafly-lib/v2/translate"
 )
 

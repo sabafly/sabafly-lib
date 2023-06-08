@@ -1,9 +1,9 @@
 package handler
 
 import (
-	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/google/uuid"
+	"github.com/sabafly/disgo/events"
 )
 
 type (

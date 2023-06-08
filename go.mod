@@ -3,17 +3,16 @@ module github.com/sabafly/sabafly-lib/v2
 go 1.20
 
 require (
-	github.com/disgoorg/disgo v0.16.5
 	github.com/disgoorg/json v1.1.0
 	github.com/disgoorg/log v1.2.0
-	github.com/disgoorg/paginator v0.0.0-20230104145353-f988d828ede9
 	github.com/disgoorg/snowflake/v2 v2.0.1
 	github.com/forPelevin/gomoji v1.1.8
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/uuid v1.3.0
 	github.com/nicksnyder/go-i18n/v2 v2.2.1
 	github.com/pelletier/go-toml/v2 v2.0.8
-	github.com/sirupsen/logrus v1.9.2
+	github.com/sabafly/disgo v0.2.0
+	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/text v0.9.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -25,7 +24,7 @@ require (
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.14.0 // indirect
+	github.com/go-playground/validator/v10 v10.14.1 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect

@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"github.com/disgoorg/disgo/events"
 	"github.com/google/uuid"
+	"github.com/sabafly/disgo/events"
 )
 
 type (

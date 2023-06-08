@@ -22,38 +22,35 @@ import (
 
 	"github.com/sabafly/sabafly-lib/v2/handler"
 
-	"github.com/disgoorg/disgo"
-	"github.com/disgoorg/disgo/bot"
-	"github.com/disgoorg/disgo/cache"
-	"github.com/disgoorg/disgo/discord"
-	"github.com/disgoorg/disgo/events"
-	"github.com/disgoorg/disgo/gateway"
-	"github.com/disgoorg/disgo/oauth2"
-	"github.com/disgoorg/disgo/sharding"
 	"github.com/disgoorg/log"
-	"github.com/disgoorg/paginator"
+	"github.com/sabafly/disgo"
+	"github.com/sabafly/disgo/bot"
+	"github.com/sabafly/disgo/cache"
+	"github.com/sabafly/disgo/discord"
+	"github.com/sabafly/disgo/events"
+	"github.com/sabafly/disgo/gateway"
+	"github.com/sabafly/disgo/oauth2"
+	"github.com/sabafly/disgo/sharding"
 )
 
 func New[T any](logger log.Logger, version string, config Config) *Bot[T] {
 	return &Bot[T]{
-		Logger:    logger,
-		Config:    config,
-		OAuth:     oauth2.New(config.ClientID, config.Secret, oauth2.WithLogger(logger)),
-		Paginator: paginator.New(),
-		Version:   version,
-		Handler:   handler.New(logger),
+		Logger:  logger,
+		Config:  config,
+		OAuth:   oauth2.New(config.ClientID, config.Secret, oauth2.WithLogger(logger)),
+		Version: version,
+		Handler: handler.New(logger),
 	}
 }
 
 type Bot[T any] struct {
-	Logger    log.Logger
-	Client    bot.Client
-	OAuth     oauth2.Client
-	Paginator *paginator.Manager
-	Config    Config
-	Version   string
-	Handler   *handler.Handler
-	Self      T
+	Logger  log.Logger
+	Client  bot.Client
+	OAuth   oauth2.Client
+	Config  Config
+	Version string
+	Handler *handler.Handler
+	Self    T
 }
 
 func (b *Bot[T]) SetupBot(listeners ...bot.EventListener) {
@@ -63,7 +60,7 @@ func (b *Bot[T]) SetupBot(listeners ...bot.EventListener) {
 		bot.WithCacheConfigOpts(cache.WithCaches(cache.FlagsAll)),
 		bot.WithShardManagerConfigOpts(sharding.WithAutoScaling(true), sharding.WithGatewayConfigOpts(gateway.WithIntents(gateway.IntentsAll), gateway.WithAutoReconnect(true), gateway.WithLogger(b.Logger))),
 		bot.WithMemberChunkingFilter(bot.MemberChunkingFilterAll),
-		bot.WithEventManagerConfigOpts(bot.WithAsyncEventsEnabled(), bot.WithListeners(b.Paginator), bot.WithListeners(listeners...), bot.WithEventManagerLogger(b.Logger)),
+		bot.WithEventManagerConfigOpts(bot.WithAsyncEventsEnabled(), bot.WithListeners(listeners...), bot.WithEventManagerLogger(b.Logger)),
 	)
 	if err != nil {
 		b.Logger.Fatalf("botのセットアップに失敗 %s", err)

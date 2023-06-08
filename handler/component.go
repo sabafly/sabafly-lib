@@ -3,7 +3,7 @@ package handler
 import (
 	"strings"
 
-	"github.com/disgoorg/disgo/events"
+	"github.com/sabafly/disgo/events"
 )
 
 type ComponentHandler func(event *events.ComponentInteractionCreate) error

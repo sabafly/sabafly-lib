@@ -11,10 +11,10 @@ import (
 	"github.com/sabafly/sabafly-lib/v2/emoji"
 	"github.com/sabafly/sabafly-lib/v2/translate"
 
-	"github.com/disgoorg/disgo/bot"
-	"github.com/disgoorg/disgo/discord"
-	"github.com/disgoorg/disgo/rest"
 	"github.com/disgoorg/snowflake/v2"
+	"github.com/sabafly/disgo/bot"
+	"github.com/sabafly/disgo/discord"
+	"github.com/sabafly/disgo/rest"
 )
 
 // 埋め込みの色、フッター、タイムスタンプを設定する
