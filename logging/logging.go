@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,39 +18,53 @@ func New(cfg Config) (*Logging, error) {
 	if cfg.LogName == "" {
 		cfg.LogName = "latest.log"
 	}
-	o, err := os.Open(filepath.Join(cfg.LogPath, cfg.LogName))
+	o, err := os.OpenFile(filepath.Join(cfg.LogPath, cfg.LogName), os.O_APPEND|os.SEEK_END|os.O_RDWR, os.ModeAppend)
 	if err == nil {
-		fi, err := o.Stat()
+		buf, err := io.ReadAll(o)
 		if err != nil {
 			return nil, err
 		}
-		seq := 1
-		_, err = os.Open(filepath.Join(cfg.LogPath, fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), seq)))
-		for !os.IsNotExist(err) {
-			seq++
-			_, err = os.Open(filepath.Join(cfg.LogPath, fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), seq)))
+		if strings.Count(string(buf), "\n") > 512 {
+			fi, err := o.Stat()
+			if err != nil {
+				return nil, err
+			}
+			seq := 1
+			path := fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), seq)
+			if cfg.LogName != "latest.log" {
+				path = cfg.LogName + "-" + path
+			}
+			path = filepath.Join(cfg.LogPath, path)
+			_, err = os.Open(path)
+			for !os.IsNotExist(err) {
+				seq++
+				o, err = os.Open(path)
+				if err == nil {
+					o.Close()
+				}
+			}
+			tg, err := os.Create(path)
+			if err != nil {
+				return nil, err
+			}
+			defer tg.Close()
+			gw := gzip.NewWriter(tg)
+			defer gw.Close()
+			gw.Header = gzip.Header{
+				Name:    cfg.LogName,
+				ModTime: fi.ModTime(),
+			}
+			if _, err := io.Copy(gw, o); err != nil {
+				return nil, err
+			}
+			o.Close()
+			o, err = os.Create(filepath.Join(cfg.LogPath, cfg.LogName))
+			if err != nil {
+				return nil, err
+			}
 		}
-		tg, err := os.Create(filepath.Join(cfg.LogPath, fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), seq)))
-		if err != nil {
-			return nil, err
-		}
-		defer tg.Close()
-		gw := gzip.NewWriter(tg)
-		defer gw.Close()
-		gw.Header = gzip.Header{
-			Name:    cfg.LogName,
-			ModTime: fi.ModTime(),
-		}
-		if _, err := io.Copy(gw, o); err != nil {
-			return nil, err
-		}
-		o.Close()
 	}
-	f, err := os.Create(filepath.Join(cfg.LogPath, cfg.LogName))
-	if err != nil {
-		return nil, err
-	}
-	fi, err := f.Stat()
+	fi, err := o.Stat()
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +74,7 @@ func New(cfg Config) (*Logging, error) {
 		fileCreatedTime: time.Now(),
 		seq:             0,
 		lines:           0,
-		file:            f,
+		file:            o,
 		fileInfo:        fi,
 	}, nil
 }
