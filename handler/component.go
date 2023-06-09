@@ -17,7 +17,7 @@ type Component struct {
 
 func (h *Handler) handleComponent(event *events.ComponentInteractionCreate) {
 	if h.IsLogEvent {
-		h.Logger.Infof("%s(%s) used %d component", event.Member().User.Tag(), event.Member().User.ID, event.Data.CustomID())
+		h.Logger.Infof("%s(%s) used %s component", event.Member().User.Tag(), event.Member().User.ID, event.Data.CustomID())
 	}
 	customID := event.Data.CustomID()
 	h.Logger.Debugf("コンポーネントインタラクション呼び出し %s", customID)

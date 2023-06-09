@@ -35,7 +35,7 @@ func New(cfg Config) (*Logging, error) {
 			seq := 1
 			path := fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), seq)
 			if cfg.LogName != "latest.log" {
-				path = cfg.LogName + "-" + path
+				path = strings.TrimSuffix(cfg.LogName, filepath.Ext(cfg.LogName)) + "-" + path
 			}
 			path = filepath.Join(cfg.LogPath, path)
 			_, err = os.Open(path)
@@ -114,7 +114,7 @@ func (l *Logging) Log(lvl, message string, t time.Time) error {
 		l.seq++
 		path := fmt.Sprintf("%s-%d.gz", time.Now().Format(time.DateOnly), l.seq)
 		if l.config.LogName != "latest.log" {
-			path = l.config.LogName + "-" + path
+			path = strings.TrimSuffix(l.config.LogName, filepath.Ext(l.config.LogName)) + "-" + path
 		}
 		path = filepath.Join(l.config.LogPath, path)
 		_, err := os.Open(path)
