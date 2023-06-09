@@ -18,10 +18,7 @@ func New(cfg Config) (*Logging, error) {
 	if cfg.LogName == "" {
 		cfg.LogName = "latest.log"
 	}
-	o, err := os.OpenFile(filepath.Join(cfg.LogPath, cfg.LogName), os.O_APPEND|os.O_RDWR, os.ModeAppend)
-	if _, err := o.Seek(0, io.SeekEnd); err != nil {
-		return nil, err
-	}
+	o, err := os.OpenFile(filepath.Join(cfg.LogPath, cfg.LogName), os.O_APPEND|os.O_RDWR|os.O_SYNC, os.ModeAppend)
 	if err == nil {
 		buf, err := io.ReadAll(o)
 		if err != nil {
@@ -66,7 +63,13 @@ func New(cfg Config) (*Logging, error) {
 				return nil, err
 			}
 		}
+	} else {
+		o, err = os.Create(filepath.Join(cfg.LogPath, cfg.LogName))
+		if err != nil {
+			return nil, err
+		}
 	}
+	_, _ = o.Seek(0, io.SeekEnd)
 	fi, err := o.Stat()
 	if err != nil {
 		return nil, err
