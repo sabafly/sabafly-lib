@@ -29,14 +29,28 @@ var _ bot.EventListener = (*Handler)(nil)
 
 func New(logger log.Logger) *Handler {
 	return &Handler{
-		Logger:      logger,
-		Commands:    map[string]Command{},
-		Components:  map[string]Component{},
-		Modals:      map[string]Modal{},
-		Message:     map[uuid.UUID]Message{},
-		Ready:       []func(*events.Ready){},
-		MemberJoin:  map[uuid.UUID]MemberJoin{},
-		MemberLeave: map[uuid.UUID]MemberLeave{},
+		Logger:     logger,
+		Commands:   map[string]Command{},
+		Components: map[string]Component{},
+		Modals:     map[string]Modal{},
+		Message:    map[uuid.UUID]Message{},
+		Ready:      []func(*events.Ready){},
+		MemberJoin: genericsList[events.GuildMemberJoin]{
+			Map:   map[uuid.UUID]generics[events.GuildMemberJoin]{},
+			Array: []generics[events.GuildMemberJoin]{},
+		},
+		MemberLeave: genericsList[events.GuildMemberLeave]{
+			Map:   map[uuid.UUID]generics[events.GuildMemberLeave]{},
+			Array: []generics[events.GuildMemberLeave]{},
+		},
+		MessageReactionAdd: genericsList[events.GuildMessageReactionAdd]{
+			Map:   map[uuid.UUID]generics[events.GuildMessageReactionAdd]{},
+			Array: []generics[events.GuildMessageReactionAdd]{},
+		},
+		MessageReactionRemove: genericsList[events.GuildMessageReactionRemove]{
+			Map:   map[uuid.UUID]generics[events.GuildMessageReactionRemove]{},
+			Array: []generics[events.GuildMessageReactionRemove]{},
+		},
 
 		ExcludeID: map[snowflake.ID]struct{}{},
 	}
@@ -45,19 +59,35 @@ func New(logger log.Logger) *Handler {
 type Handler struct {
 	Logger log.Logger
 
-	Commands    map[string]Command
-	Components  map[string]Component
-	Modals      map[string]Modal
-	Message     map[uuid.UUID]Message
-	Ready       []func(*events.Ready)
-	MemberJoin  map[uuid.UUID]MemberJoin
-	MemberLeave map[uuid.UUID]MemberLeave
+	Commands                   map[string]Command
+	Components                 map[string]Component
+	Modals                     map[string]Modal
+	Message                    map[uuid.UUID]Message
+	MessageUpdate              map[uuid.UUID]MessageUpdate
+	MessageDelete              map[uuid.UUID]MessageDelete
+	Ready                      []func(*events.Ready)
+	MemberJoin                 genericsList[events.GuildMemberJoin]
+	MemberLeave                genericsList[events.GuildMemberLeave]
+	MemberUpdate               genericsList[events.GuildMemberUpdate]
+	MessageReactionAdd         genericsList[events.GuildMessageReactionAdd]
+	MessageReactionRemove      genericsList[events.GuildMessageReactionRemove]
+	MessageReactionRemoveAll   genericsList[events.GuildMessageReactionRemoveAll]
+	MessageReactionRemoveEmoji genericsList[events.GuildMessageReactionRemoveEmoji]
+	Event                      []Event
+
+	Static StaticHandler
 
 	ExcludeID  map[snowflake.ID]struct{}
 	DevGuildID []snowflake.ID
 	IsDebug    bool
 	ASync      bool
 	IsLogEvent bool
+}
+
+type StaticHandler struct {
+	Message       []Message
+	MessageUpdate []MessageUpdate
+	MessageDelete []MessageDelete
 }
 
 func (h *Handler) AddExclude(ids ...snowflake.ID) {
@@ -92,42 +122,55 @@ func (h *Handler) AddModals(modals ...Modal) {
 }
 
 func (h *Handler) AddMessage(message Message) func() {
-	h.Message[message.UUID] = message
-	return func() {
-		delete(h.Message, message.UUID)
+	if message.UUID != nil {
+		h.Message[*message.UUID] = message
+		return func() {
+			delete(h.Message, *message.UUID)
+		}
+	} else {
+		h.Static.Message = append(h.Static.Message, message)
+		return nil
 	}
 }
 
 func (h *Handler) AddMessages(messages ...Message) {
-	for _, message := range messages {
-		h.Message[message.UUID] = message
+	h.Static.Message = append(h.Static.Message, messages...)
+}
+
+func (h *Handler) AddMessageUpdate(messageUpdate MessageUpdate) func() {
+	if messageUpdate.UUID != nil {
+		h.MessageUpdate[*messageUpdate.UUID] = messageUpdate
+		return func() {
+			delete(h.MessageUpdate, *messageUpdate.UUID)
+		}
+	} else {
+		h.Static.MessageUpdate = append(h.Static.MessageUpdate, messageUpdate)
+		return nil
 	}
 }
 
-func (h *Handler) AddMemberJoin(memberJoin MemberJoin) func() {
-	h.MemberJoin[memberJoin.UUID] = memberJoin
-	return func() {
-		delete(h.MemberJoin, memberJoin.UUID)
+func (h *Handler) AddMessageUpdates(messageUpdates ...MessageUpdate) {
+	h.Static.MessageUpdate = append(h.Static.MessageUpdate, messageUpdates...)
+}
+
+func (h *Handler) AddMessageDelete(messageDelete MessageDelete) func() {
+	if messageDelete.UUID != nil {
+		h.MessageDelete[*messageDelete.UUID] = messageDelete
+		return func() {
+			delete(h.MessageDelete, *messageDelete.UUID)
+		}
+	} else {
+		h.Static.MessageDelete = append(h.Static.MessageDelete, messageDelete)
+		return nil
 	}
 }
 
-func (h *Handler) AddMemberJoins(memberJoins ...MemberJoin) {
-	for _, mj := range memberJoins {
-		h.MemberJoin[mj.UUID] = mj
-	}
+func (h *Handler) AddMessageDeletes(messageDeletes ...MessageDelete) {
+	h.Static.MessageDelete = append(h.Static.MessageDelete, messageDeletes...)
 }
 
-func (h *Handler) AddMemberLeave(memberLeave MemberLeave) func() {
-	h.MemberLeave[memberLeave.UUID] = memberLeave
-	return func() {
-		delete(h.MemberLeave, memberLeave.UUID)
-	}
-}
-
-func (h *Handler) AddMemberLeaves(memberLeaves ...MemberLeave) {
-	for _, ml := range memberLeaves {
-		h.MemberLeave[ml.UUID] = ml
-	}
+func (h *Handler) AddEvent(events ...Event) {
+	h.Event = append(h.Event, events...)
 }
 
 func (h *Handler) AddReady(ready func(*events.Ready)) {
@@ -207,13 +250,26 @@ func (h *Handler) onEvent(event bot.Event) {
 		h.handleComponent(e)
 	case *events.ModalSubmitInteractionCreate:
 		h.handleModal(e)
-	case *events.MessageCreate:
+	case *events.GuildMessageCreate:
 		h.handleMessage(e)
+	case *events.GuildMessageDelete:
+		h.handleMessageDelete(e)
+	case *events.GuildMessageUpdate:
+		h.handleMessageUpdate(e)
 	case *events.Ready:
 		h.handleReady(e)
 	case *events.GuildMemberJoin:
-		h.handlerMemberJoin(e)
+		h.MemberJoin.handleEvent(e)
 	case *events.GuildMemberLeave:
-		h.handlerMemberLeave(e)
+		h.MemberLeave.handleEvent(e)
+	case *events.GuildMessageReactionAdd:
+		h.MessageReactionAdd.handleEvent(e)
+	case *events.GuildMessageReactionRemove:
+		h.MessageReactionRemove.handleEvent(e)
+	case *events.GuildMessageReactionRemoveAll:
+		h.MessageReactionRemoveAll.handleEvent(e)
+	case *events.GuildMessageReactionRemoveEmoji:
+		h.MessageReactionRemoveEmoji.handleEvent(e)
 	}
+	h.handleEvent(event)
 }

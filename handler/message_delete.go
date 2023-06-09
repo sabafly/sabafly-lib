@@ -7,31 +7,31 @@ import (
 )
 
 type (
-	MessageHandler func(event *events.GuildMessageCreate) error
+	MessageDeleteHandler func(event *events.GuildMessageDelete) error
 )
 
-type Message struct {
+type MessageDelete struct {
 	UUID      *uuid.UUID
 	ChannelID *snowflake.ID
 	AuthorID  *snowflake.ID
-	Check     Check[*events.GuildMessageCreate]
-	Handler   MessageHandler
+	Check     Check[*events.GuildMessageDelete]
+	Handler   MessageDeleteHandler
 }
 
-func (h *Handler) handleMessage(event *events.GuildMessageCreate) {
+func (h *Handler) handleMessageDelete(event *events.GuildMessageDelete) {
 	if _, ok := h.ExcludeID[event.ChannelID]; ok {
 		return
 	}
 	h.Logger.Debugf("メッセージ作成 %d", event.ChannelID)
-	for _, m := range h.Static.Message {
-		h.run_message(m, event)
+	for _, m := range h.Static.MessageDelete {
+		h.run_message_delete(m, event)
 	}
-	for _, m := range h.Message {
-		h.run_message(m, event)
+	for _, m := range h.MessageDelete {
+		h.run_message_delete(m, event)
 	}
 }
 
-func (h *Handler) run_message(m Message, event *events.GuildMessageCreate) {
+func (h *Handler) run_message_delete(m MessageDelete, event *events.GuildMessageDelete) {
 	if m.ChannelID != nil && *m.ChannelID != event.ChannelID {
 		h.Logger.Debug("チャンネルが違います")
 		return
