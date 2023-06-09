@@ -14,7 +14,10 @@ import (
 
 func New(cfg Config) (*Logging, error) {
 	_ = os.Mkdir(filepath.Clean(cfg.LogPath), os.ModeDir)
-	o, err := os.Open(filepath.Join(cfg.LogPath, "latest.log"))
+	if cfg.LogName == "" {
+		cfg.LogName = "latest.log"
+	}
+	o, err := os.Open(filepath.Join(cfg.LogPath, cfg.LogName))
 	if err == nil {
 		fi, err := o.Stat()
 		if err != nil {
@@ -34,7 +37,7 @@ func New(cfg Config) (*Logging, error) {
 		gw := gzip.NewWriter(tg)
 		defer gw.Close()
 		gw.Header = gzip.Header{
-			Name:    "latest.log",
+			Name:    cfg.LogName,
 			ModTime: fi.ModTime(),
 		}
 		if _, err := io.Copy(gw, o); err != nil {
@@ -42,7 +45,7 @@ func New(cfg Config) (*Logging, error) {
 		}
 		o.Close()
 	}
-	f, err := os.Create(filepath.Join(cfg.LogPath, "latest.log"))
+	f, err := os.Create(filepath.Join(cfg.LogPath, cfg.LogName))
 	if err != nil {
 		return nil, err
 	}
@@ -54,6 +57,8 @@ func New(cfg Config) (*Logging, error) {
 	return &Logging{
 		config:          cfg,
 		fileCreatedTime: time.Now(),
+		seq:             0,
+		lines:           0,
 		file:            f,
 		fileInfo:        fi,
 	}, nil
@@ -68,6 +73,7 @@ type Logging struct {
 	config          Config
 	fileCreatedTime time.Time
 	seq             int
+	lines           int
 	file            *os.File
 	fileInfo        os.FileInfo
 }
@@ -83,17 +89,22 @@ func (l *Logging) Fire(entry *logrus.Entry) error {
 func (l *Logging) Log(lvl, message string, t time.Time) error {
 	l.Lock()
 	defer l.Unlock()
-	if l.fileCreatedTime.Before(time.Now().Add(time.Hour * -3)) {
+	if l.fileCreatedTime.Before(time.Now().Add(time.Hour*-3)) && l.lines > 512 {
 		if l.fileCreatedTime.Day() != t.Day() {
 			l.seq = 0
 		}
 		l.seq++
-		_, err := os.Open(filepath.Join(l.config.LogPath, fmt.Sprintf("%s-%d.gz", time.Now().Format(time.DateOnly), l.seq)))
+		path := fmt.Sprintf("%s-%d.gz", time.Now().Format(time.DateOnly), l.seq)
+		if l.config.LogName != "latest.log" {
+			path = l.config.LogName + "-" + path
+		}
+		path = filepath.Join(l.config.LogPath, path)
+		_, err := os.Open(path)
 		for !os.IsNotExist(err) {
 			l.seq++
-			_, err = os.Open(filepath.Join(l.config.LogPath, fmt.Sprintf("%s-%d.gz", time.Now().Format(time.DateOnly), l.seq)))
+			_, err = os.Open(path)
 		}
-		tg, err := os.Create(filepath.Join(l.config.LogPath, fmt.Sprintf("%s-%d.gz", time.Now().Format(time.DateOnly), l.seq)))
+		tg, err := os.Create(path)
 		if err != nil {
 			return nil
 		}
@@ -101,15 +112,15 @@ func (l *Logging) Log(lvl, message string, t time.Time) error {
 		gw := gzip.NewWriter(tg)
 		defer gw.Close()
 		gw.Header = gzip.Header{
-			Name:    "latest.log",
+			Name:    l.config.LogName,
 			ModTime: l.fileInfo.ModTime(),
 		}
 		if _, err := io.Copy(gw, l.file); err != nil {
 			return err
 		}
 		l.Close()
-		_ = os.Remove(filepath.Join(l.config.LogPath, "latest.log"))
-		f, err := os.Create(filepath.Join(l.config.LogPath, "latest.log"))
+		_ = os.Remove(filepath.Join(l.config.LogPath, l.config.LogName))
+		f, err := os.Create(filepath.Join(l.config.LogPath, l.config.LogName))
 		if err != nil {
 			return err
 		}
@@ -120,10 +131,12 @@ func (l *Logging) Log(lvl, message string, t time.Time) error {
 		}
 		l.fileInfo = fi
 		l.fileCreatedTime = fi.ModTime()
+		l.lines = 0
 	}
 	_, err := l.file.WriteString(fmt.Sprintf("[%s] [%s]: %s\n", t.Format(time.TimeOnly), lvl, message))
 	if err != nil {
 		return err
 	}
+	l.lines++
 	return nil
 }
