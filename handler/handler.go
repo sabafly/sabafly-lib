@@ -36,20 +36,20 @@ func New(logger log.Logger) *Handler {
 		Message:    map[uuid.UUID]Message{},
 		Ready:      []func(*events.Ready){},
 		MemberJoin: genericsList[events.GuildMemberJoin]{
-			Map:   map[uuid.UUID]generics[events.GuildMemberJoin]{},
-			Array: []generics[events.GuildMemberJoin]{},
+			Map:   map[uuid.UUID]Generics[events.GuildMemberJoin]{},
+			Array: []Generics[events.GuildMemberJoin]{},
 		},
 		MemberLeave: genericsList[events.GuildMemberLeave]{
-			Map:   map[uuid.UUID]generics[events.GuildMemberLeave]{},
-			Array: []generics[events.GuildMemberLeave]{},
+			Map:   map[uuid.UUID]Generics[events.GuildMemberLeave]{},
+			Array: []Generics[events.GuildMemberLeave]{},
 		},
 		MessageReactionAdd: genericsList[events.GuildMessageReactionAdd]{
-			Map:   map[uuid.UUID]generics[events.GuildMessageReactionAdd]{},
-			Array: []generics[events.GuildMessageReactionAdd]{},
+			Map:   map[uuid.UUID]Generics[events.GuildMessageReactionAdd]{},
+			Array: []Generics[events.GuildMessageReactionAdd]{},
 		},
 		MessageReactionRemove: genericsList[events.GuildMessageReactionRemove]{
-			Map:   map[uuid.UUID]generics[events.GuildMessageReactionRemove]{},
-			Array: []generics[events.GuildMessageReactionRemove]{},
+			Map:   map[uuid.UUID]Generics[events.GuildMessageReactionRemove]{},
+			Array: []Generics[events.GuildMessageReactionRemove]{},
 		},
 
 		ExcludeID: map[snowflake.ID]struct{}{},

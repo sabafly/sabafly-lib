@@ -5,23 +5,23 @@ import (
 	"github.com/google/uuid"
 )
 
-type genericsHandler[T any] func(event *T) error
+type GenericsHandler[T any] func(event *T) error
 
-type generics[T any] struct {
+type Generics[T any] struct {
 	ID *uuid.UUID
 
 	Check   Check[*T]
-	Handler genericsHandler[T]
+	Handler GenericsHandler[T]
 }
 
 type genericsList[T any] struct {
-	Map   map[uuid.UUID]generics[T]
-	Array []generics[T]
+	Map   map[uuid.UUID]Generics[T]
+	Array []Generics[T]
 
 	Logger log.Logger
 }
 
-func (g *genericsList[T]) Add(gen generics[T]) func() {
+func (g *genericsList[T]) Add(gen Generics[T]) func() {
 	if gen.ID != nil {
 		g.Map[*gen.ID] = gen
 		return func() {
@@ -33,7 +33,7 @@ func (g *genericsList[T]) Add(gen generics[T]) func() {
 	}
 }
 
-func (g *genericsList[T]) Adds(gen ...generics[T]) {
+func (g *genericsList[T]) Adds(gen ...Generics[T]) {
 	g.Array = append(g.Array, gen...)
 }
 
@@ -46,7 +46,7 @@ func (g *genericsList[T]) handleEvent(event *T) {
 	}
 }
 
-func (g *genericsList[T]) run(generic generics[T], event *T) {
+func (g *genericsList[T]) run(generic Generics[T], event *T) {
 	if generic.Check != nil && generic.Check(event) {
 		return
 	}
