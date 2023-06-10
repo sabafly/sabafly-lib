@@ -19,28 +19,39 @@ func New(cfg Config) (*Logging, error) {
 		cfg.LogName = "latest.log"
 	}
 	o, err := os.OpenFile(filepath.Join(cfg.LogPath, cfg.LogName), os.O_APPEND|os.O_RDWR|os.O_SYNC, os.ModeAppend)
+	lines := 0
+	seq := 1
 	if err == nil {
 		buf, err := io.ReadAll(o)
 		if err != nil {
 			return nil, err
 		}
-		if strings.Count(string(buf), "\n") > 512 {
+		lines = strings.Count(string(buf), "\n")
+		if lines > 512 {
 			fi, err := o.Stat()
 			if err != nil {
 				return nil, err
 			}
-			seq := 1
 			path := fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), seq)
 			if cfg.LogName != "latest.log" {
 				path = strings.TrimSuffix(cfg.LogName, filepath.Ext(cfg.LogName)) + "-" + path
 			}
 			path = filepath.Join(cfg.LogPath, path)
-			_, err = os.Open(path)
-			for !os.IsNotExist(err) {
+			fm, err := os.Open(path)
+			if err != nil {
+				fm.Close()
+			}
+			for !os.IsNotExist(err) || os.IsExist(err) {
 				seq++
-				o, err = os.Open(path)
+				path = fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), seq)
+				if cfg.LogName != "latest.log" {
+					path = strings.TrimSuffix(cfg.LogName, filepath.Ext(cfg.LogName)) + "-" + path
+				}
+				path = filepath.Join(cfg.LogPath, path)
+				var f2 *os.File
+				f2, err = os.Open(path)
 				if err == nil {
-					o.Close()
+					f2.Close()
 				}
 			}
 			tg, err := os.Create(path)
@@ -54,19 +65,20 @@ func New(cfg Config) (*Logging, error) {
 				Name:    cfg.LogName,
 				ModTime: fi.ModTime(),
 			}
-			if _, err := io.Copy(gw, o); err != nil {
-				return nil, err
+			if _, err := gw.Write(buf); err != nil {
+				return nil, fmt.Errorf("error on io copy: %w", err)
 			}
 			o.Close()
+			lines = 0
 			o, err = os.Create(filepath.Join(cfg.LogPath, cfg.LogName))
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error on os crate: %w", err)
 			}
 		}
 	} else {
 		o, err = os.Create(filepath.Join(cfg.LogPath, cfg.LogName))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error on os crate: %w", err)
 		}
 	}
 	_, _ = o.Seek(0, io.SeekEnd)
@@ -78,8 +90,8 @@ func New(cfg Config) (*Logging, error) {
 	return &Logging{
 		config:          cfg,
 		fileCreatedTime: time.Now(),
-		seq:             0,
-		lines:           0,
+		seq:             seq,
+		lines:           lines,
 		file:            o,
 		fileInfo:        fi,
 	}, nil
@@ -110,7 +122,7 @@ func (l *Logging) Fire(entry *logrus.Entry) error {
 func (l *Logging) Log(lvl, message string, t time.Time) error {
 	l.Lock()
 	defer l.Unlock()
-	if l.fileCreatedTime.Before(time.Now().Add(time.Hour*-3)) && l.lines > 512 {
+	if l.lines > 512 {
 		if l.fileCreatedTime.Day() != t.Day() {
 			l.seq = 0
 		}
@@ -120,10 +132,21 @@ func (l *Logging) Log(lvl, message string, t time.Time) error {
 			path = strings.TrimSuffix(l.config.LogName, filepath.Ext(l.config.LogName)) + "-" + path
 		}
 		path = filepath.Join(l.config.LogPath, path)
-		_, err := os.Open(path)
-		for !os.IsNotExist(err) {
-			l.seq++
-			_, err = os.Open(path)
+		fm, err := os.Open(path)
+		if err != nil {
+			fm.Close()
+		}
+		for !os.IsNotExist(err) && os.IsExist(err) {
+			path = fmt.Sprintf("%s-%d.gz", time.Now().Format(time.DateOnly), l.seq)
+			if l.config.LogName != "latest.log" {
+				path = strings.TrimSuffix(l.config.LogName, filepath.Ext(l.config.LogName)) + "-" + path
+			}
+			path = filepath.Join(l.config.LogPath, path)
+			var f2 *os.File
+			f2, err = os.Open(path)
+			if err == nil {
+				f2.Close()
+			}
 		}
 		tg, err := os.Create(path)
 		if err != nil {
