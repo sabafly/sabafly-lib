@@ -126,8 +126,11 @@ func (l *Logging) Log(lvl, message string, t time.Time) error {
 		if l.fileCreatedTime.Day() != t.Day() {
 			l.seq = 0
 		}
-		l.seq++
-		path := fmt.Sprintf("%s-%d.gz", time.Now().Format(time.DateOnly), l.seq)
+		fi, err := l.file.Stat()
+		if err != nil {
+			return err
+		}
+		path := fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), l.seq)
 		if l.config.LogName != "latest.log" {
 			path = strings.TrimSuffix(l.config.LogName, filepath.Ext(l.config.LogName)) + "-" + path
 		}
@@ -136,8 +139,9 @@ func (l *Logging) Log(lvl, message string, t time.Time) error {
 		if err != nil {
 			fm.Close()
 		}
-		for !os.IsNotExist(err) && os.IsExist(err) {
-			path = fmt.Sprintf("%s-%d.gz", time.Now().Format(time.DateOnly), l.seq)
+		for !os.IsNotExist(err) || os.IsExist(err) {
+			l.seq++
+			path = fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), l.seq)
 			if l.config.LogName != "latest.log" {
 				path = strings.TrimSuffix(l.config.LogName, filepath.Ext(l.config.LogName)) + "-" + path
 			}
@@ -150,32 +154,24 @@ func (l *Logging) Log(lvl, message string, t time.Time) error {
 		}
 		tg, err := os.Create(path)
 		if err != nil {
-			return nil
+			return err
 		}
 		defer tg.Close()
 		gw := gzip.NewWriter(tg)
 		defer gw.Close()
 		gw.Header = gzip.Header{
 			Name:    l.config.LogName,
-			ModTime: l.fileInfo.ModTime(),
+			ModTime: fi.ModTime(),
 		}
 		if _, err := io.Copy(gw, l.file); err != nil {
-			return err
+			return fmt.Errorf("error on io copy: %w", err)
 		}
-		l.Close()
-		_ = os.Remove(filepath.Join(l.config.LogPath, l.config.LogName))
-		f, err := os.Create(filepath.Join(l.config.LogPath, l.config.LogName))
-		if err != nil {
-			return err
-		}
-		l.file = f
-		fi, err := f.Stat()
-		if err != nil {
-			return err
-		}
-		l.fileInfo = fi
-		l.fileCreatedTime = fi.ModTime()
+		l.file.Close()
 		l.lines = 0
+		l.file, err = os.Create(filepath.Join(l.config.LogPath, l.config.LogName))
+		if err != nil {
+			return fmt.Errorf("error on os crate: %w", err)
+		}
 	}
 	_, err := l.file.WriteString(fmt.Sprintf("[%s] [%s]: %s\n", t.Format(time.TimeOnly), lvl, message))
 	if err != nil {

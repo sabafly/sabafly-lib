@@ -62,8 +62,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rivo/uniseg v0.4.4 h1:8TfxU8dW6PdqD27gjM8MVNuicgxIjxpm4K7x4jp8sis=
 github.com/rivo/uniseg v0.4.4/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
-github.com/sabafly/disgo v0.2.1 h1:x+Lyu0M4TJifAn6t7r7CTCsoaAKY8CRlYhWwUJOhNB8=
-github.com/sabafly/disgo v0.2.1/go.mod h1:4p4+Z/Px9CQx/zHT735cMn5XZraQ46p+cwE9Ntwq0Tk=
+github.com/sabafly/disgo v0.2.2 h1:tYP/ocflxl+RCeldcGGbrdARYGxB/00qI8RustN0zPs=
+github.com/sabafly/disgo v0.2.2/go.mod h1:50uyPIscDmL73XgICrWZ12rEtDudpqmVCdn81Sjh4Sw=
 github.com/sasha-s/go-csync v0.0.0-20210812194225-61421b77c44b h1:qYTY2tN72LhgDj2rtWG+LI6TXFl2ygFQQ4YezfVaGQE=
 github.com/sasha-s/go-csync v0.0.0-20210812194225-61421b77c44b/go.mod h1:/pA7k3zsXKdjjAiUhB5CjuKib9KJGCaLvZwtxGC8U0s=
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=
