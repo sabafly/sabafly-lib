@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -18,83 +19,36 @@ func New(cfg Config) (*Logging, error) {
 	if cfg.LogName == "" {
 		cfg.LogName = "latest.log"
 	}
-	o, err := os.OpenFile(filepath.Join(cfg.LogPath, cfg.LogName), os.O_APPEND|os.O_RDWR|os.O_SYNC, os.ModeAppend)
-	lines := 0
-	seq := 1
-	if err == nil {
-		buf, err := io.ReadAll(o)
-		if err != nil {
-			return nil, err
-		}
-		lines = strings.Count(string(buf), "\n")
-		if lines > 512 {
-			fi, err := o.Stat()
-			if err != nil {
-				return nil, err
-			}
-			path := fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), seq)
-			if cfg.LogName != "latest.log" {
-				path = strings.TrimSuffix(cfg.LogName, filepath.Ext(cfg.LogName)) + "-" + path
-			}
-			path = filepath.Join(cfg.LogPath, path)
-			fm, err := os.Open(path)
-			if err != nil {
-				fm.Close()
-			}
-			for !os.IsNotExist(err) || os.IsExist(err) {
-				seq++
-				path = fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), seq)
-				if cfg.LogName != "latest.log" {
-					path = strings.TrimSuffix(cfg.LogName, filepath.Ext(cfg.LogName)) + "-" + path
-				}
-				path = filepath.Join(cfg.LogPath, path)
-				var f2 *os.File
-				f2, err = os.Open(path)
-				if err == nil {
-					f2.Close()
-				}
-			}
-			tg, err := os.Create(path)
-			if err != nil {
-				return nil, err
-			}
-			defer tg.Close()
-			gw := gzip.NewWriter(tg)
-			defer gw.Close()
-			gw.Header = gzip.Header{
-				Name:    cfg.LogName,
-				ModTime: fi.ModTime(),
-			}
-			if _, err := gw.Write(buf); err != nil {
-				return nil, fmt.Errorf("error on io copy: %w", err)
-			}
-			o.Close()
-			lines = 0
-			o, err = os.Create(filepath.Join(cfg.LogPath, cfg.LogName))
-			if err != nil {
-				return nil, fmt.Errorf("error on os crate: %w", err)
-			}
-		}
-	} else {
-		o, err = os.Create(filepath.Join(cfg.LogPath, cfg.LogName))
-		if err != nil {
-			return nil, fmt.Errorf("error on os crate: %w", err)
-		}
+	o, err := os.OpenFile(filepath.Join(cfg.LogPath, cfg.LogName), os.O_RDWR|os.O_SYNC|os.O_CREATE, 0755)
+	if err != nil {
+		return nil, err
 	}
-	_, _ = o.Seek(0, io.SeekEnd)
+	var lines, seq int
+	seq = 1
 	fi, err := o.Stat()
 	if err != nil {
 		return nil, err
 	}
+	buf, err := io.ReadAll(o)
+	if err != nil {
+		return nil, err
+	}
+	lines = bytes.Count(buf, []byte("\n"))
+	l := &Logging{
+		config:   cfg,
+		time:     fi.ModTime(),
+		seq:      seq,
+		lines:    lines,
+		file:     o,
+		fileInfo: fi,
+	}
+	if l.lines > 512 {
+		if err := l.write(); err != nil {
+			return nil, fmt.Errorf("error on write: %w", err)
+		}
+	}
 
-	return &Logging{
-		config:          cfg,
-		fileCreatedTime: time.Now(),
-		seq:             seq,
-		lines:           lines,
-		file:            o,
-		fileInfo:        fi,
-	}, nil
+	return l, nil
 }
 
 func (l *Logging) Close() error {
@@ -103,12 +57,12 @@ func (l *Logging) Close() error {
 
 type Logging struct {
 	sync.Mutex
-	config          Config
-	fileCreatedTime time.Time
-	seq             int
-	lines           int
-	file            *os.File
-	fileInfo        os.FileInfo
+	config   Config
+	time     time.Time
+	seq      int
+	lines    int
+	file     *os.File
+	fileInfo os.FileInfo
 }
 
 func (l *Logging) Levels() []logrus.Level {
@@ -120,63 +74,75 @@ func (l *Logging) Fire(entry *logrus.Entry) error {
 }
 
 func (l *Logging) Log(lvl, message string, t time.Time) error {
-	l.Lock()
-	defer l.Unlock()
 	if l.lines > 512 {
-		if l.fileCreatedTime.Day() != t.Day() {
-			l.seq = 0
-		}
-		fi, err := l.file.Stat()
-		if err != nil {
+		if err := l.write(); err != nil {
 			return err
 		}
-		path := fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), l.seq)
+	}
+	l.Lock()
+	defer l.Unlock()
+	if _, err := l.file.WriteString(fmt.Sprintf("[%s] [%s]: %s\n", t.Format(time.TimeOnly), lvl, message)); err != nil {
+		return err
+	}
+	l.lines++
+	return nil
+}
+
+func (l *Logging) write() error {
+	l.Lock()
+	defer l.Unlock()
+	if err := l.file.Sync(); err != nil {
+		return fmt.Errorf("error on sync: %w", err)
+	}
+	fi, err := l.file.Stat()
+	if err != nil {
+		return fmt.Errorf("error on file stat: %w", err)
+	}
+	path := fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), l.seq)
+	if l.config.LogName != "latest.log" {
+		path = strings.TrimSuffix(l.config.LogName, filepath.Ext(l.config.LogName)) + "-" + path
+	}
+	path = filepath.Join(l.config.LogPath, path)
+
+	if err := l.file.Close(); err != nil {
+		return fmt.Errorf("error on close: %w", err)
+	}
+
+	o, err := os.OpenFile(filepath.Join(l.config.LogPath, l.config.LogName), os.O_RDWR|os.O_SYNC|os.O_CREATE, 0755)
+	if err != nil {
+		return fmt.Errorf("error on os open: %w", err)
+	}
+
+	gz, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE|os.O_EXCL, 0755)
+	for err != nil {
+		gz.Close()
+		l.seq++
+		path = fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), l.seq)
 		if l.config.LogName != "latest.log" {
 			path = strings.TrimSuffix(l.config.LogName, filepath.Ext(l.config.LogName)) + "-" + path
 		}
 		path = filepath.Join(l.config.LogPath, path)
-		fm, err := os.Open(path)
-		if err != nil {
-			fm.Close()
-		}
-		for !os.IsNotExist(err) || os.IsExist(err) {
-			l.seq++
-			path = fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), l.seq)
-			if l.config.LogName != "latest.log" {
-				path = strings.TrimSuffix(l.config.LogName, filepath.Ext(l.config.LogName)) + "-" + path
-			}
-			path = filepath.Join(l.config.LogPath, path)
-			var f2 *os.File
-			f2, err = os.Open(path)
-			if err == nil {
-				f2.Close()
-			}
-		}
-		tg, err := os.Create(path)
-		if err != nil {
-			return err
-		}
-		defer tg.Close()
-		gw := gzip.NewWriter(tg)
-		defer gw.Close()
-		gw.Header = gzip.Header{
-			Name:    l.config.LogName,
-			ModTime: fi.ModTime(),
-		}
-		if _, err := io.Copy(gw, l.file); err != nil {
-			return fmt.Errorf("error on io copy: %w", err)
-		}
-		l.file.Close()
-		l.lines = 0
-		l.file, err = os.Create(filepath.Join(l.config.LogPath, l.config.LogName))
-		if err != nil {
-			return fmt.Errorf("error on os crate: %w", err)
-		}
+		gz, err = os.OpenFile(path, os.O_RDONLY|os.O_CREATE|os.O_EXCL, 0755)
 	}
-	_, err := l.file.WriteString(fmt.Sprintf("[%s] [%s]: %s\n", t.Format(time.TimeOnly), lvl, message))
-	if err != nil {
-		return err
+	defer gz.Close()
+	gw := gzip.NewWriter(gz)
+	defer gw.Close()
+	gw.Header = gzip.Header{
+		Name:    l.config.LogName,
+		ModTime: fi.ModTime(),
 	}
-	l.lines++
+	if _, err := io.Copy(gw, o); err != nil {
+		return fmt.Errorf("error on io copy: %w", err)
+	}
+
+	if err := o.Truncate(0); err != nil {
+		return fmt.Errorf("error on truncate: %w", err)
+	}
+	if _, err := o.Seek(0, -1); err != nil {
+		return fmt.Errorf("error on seek: %w", err)
+	}
+
+	l.file = o
+	l.lines = 0
 	return nil
 }
