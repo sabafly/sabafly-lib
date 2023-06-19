@@ -204,7 +204,10 @@ func ActivitiesNameString(locale discord.Locale, activity discord.Activity) (str
 		if activity.Emoji != nil {
 			return
 		}
-		str = discord.EmojiMention(*activity.Emoji.ID, activity.Emoji.Name) + " " + activity.Name
+		str = activity.Name
+		if activity.Emoji.ID != nil && activity.Emoji.Name != nil {
+			str = discord.EmojiMention(*activity.Emoji.ID, *activity.Emoji.Name) + " " + activity.Name
+		}
 	case discord.ActivityTypeCompeting:
 		str = translate.Translate(locale, "activity_competing_name", map[string]any{"Name": activity.Name})
 	}

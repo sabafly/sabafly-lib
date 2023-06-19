@@ -42,7 +42,7 @@ func New(cfg Config) (*Logging, error) {
 		file:     o,
 		fileInfo: fi,
 	}
-	if l.lines > 512 {
+	if l.time.After(time.Now().Add(-3*time.Hour)) || l.lines > 512 {
 		if err := l.write(); err != nil {
 			return nil, fmt.Errorf("error on write: %w", err)
 		}
@@ -74,7 +74,7 @@ func (l *Logging) Fire(entry *logrus.Entry) error {
 }
 
 func (l *Logging) Log(lvl, message string, t time.Time) error {
-	if l.lines > 512 {
+	if l.time.After(time.Now().Add(-3*time.Hour)) || l.lines > 512 {
 		if err := l.write(); err != nil {
 			return err
 		}
@@ -84,6 +84,7 @@ func (l *Logging) Log(lvl, message string, t time.Time) error {
 	if _, err := l.file.WriteString(fmt.Sprintf("[%s] [%s]: %s\n", t.Format(time.TimeOnly), lvl, message)); err != nil {
 		return err
 	}
+	l.time = t
 	l.lines++
 	return nil
 }
