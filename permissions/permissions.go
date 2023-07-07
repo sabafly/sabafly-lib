@@ -42,7 +42,7 @@ func (p Permission) Has(perm string) bool {
 	return true
 }
 
-func (p Permission) Add(perm string) {
+func (p Permission) Add(perm string) Permission {
 	perms := strings.Split(perm, ".")
 	p2 := p
 	for _, v := range perms {
@@ -51,18 +51,20 @@ func (p Permission) Add(perm string) {
 		}
 		p2 = p2[v]
 	}
+	return p
 }
 
-func (p Permission) Del(perm string) {
+func (p Permission) Del(perm string) Permission {
 	perms := strings.Split(perm, ".")
 	p2 := p
 	for i, v := range perms {
 		if _, ok := p2[v]; !ok {
-			return
+			return p
 		}
 		if i >= len(perms)-1 {
 			delete(p2, v)
 		}
 		p2 = p2[v]
 	}
+	return p
 }
