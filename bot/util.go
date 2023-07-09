@@ -235,7 +235,7 @@ func SendWebhook(client bot.Client, channelID snowflake.ID, data discord.Webhook
 					data.Username = me.Username
 				}
 				if data.AvatarURL == "" {
-					data.AvatarURL = me.EffectiveAvatarURL(discord.WithFormat(discord.ImageFormatPNG))
+					data.AvatarURL = me.EffectiveAvatarURL(discord.WithFormat(discord.FileFormatPNG))
 				}
 				st, err = client.Rest().CreateWebhookMessage(webhook.ID(), token, data, true, snowflake.ID(0))
 				if err != nil {
@@ -247,7 +247,7 @@ func SendWebhook(client bot.Client, channelID snowflake.ID, data discord.Webhook
 	}
 	if webhook == nil {
 		var buf []byte
-		if avatarURL := me.EffectiveAvatarURL(discord.WithFormat(discord.ImageFormatPNG)); avatarURL != "" {
+		if avatarURL := me.EffectiveAvatarURL(discord.WithFormat(discord.FileFormatPNG)); avatarURL != "" {
 			resp, err := http.Get(avatarURL)
 			if err != nil {
 				return nil, fmt.Errorf("error on get: %w", err)
@@ -271,7 +271,7 @@ func SendWebhook(client bot.Client, channelID snowflake.ID, data discord.Webhook
 		data.Username = me.Username
 	}
 	if data.AvatarURL == "" {
-		data.AvatarURL = me.EffectiveAvatarURL(discord.WithFormat(discord.ImageFormatPNG))
+		data.AvatarURL = me.EffectiveAvatarURL(discord.WithFormat(discord.FileFormatPNG))
 	}
 	st, err = client.Rest().CreateWebhookMessage(webhook.ID(), token, data, true, snowflake.ID(0))
 	if err != nil {
@@ -302,7 +302,7 @@ func GetWebhook(client bot.Client, channelID snowflake.ID) (id snowflake.ID, tok
 	}
 	if webhook == nil {
 		var buf []byte
-		if avatarURL := me.EffectiveAvatarURL(discord.WithFormat(discord.ImageFormatPNG)); avatarURL != "" {
+		if avatarURL := me.EffectiveAvatarURL(discord.WithFormat(discord.FileFormatPNG)); avatarURL != "" {
 			resp, err := http.Get(avatarURL)
 			if err != nil {
 				return 0, "", fmt.Errorf("error on get: %w", err)
