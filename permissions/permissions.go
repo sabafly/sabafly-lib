@@ -68,3 +68,20 @@ func (p Permission) Del(perm string) Permission {
 	}
 	return p
 }
+
+func (p Permission) List() (r []string) {
+	for k, v := range p {
+		r = append(r, list(k, v)...)
+	}
+	return r
+}
+
+func list(k string, v Permission) (r []string) {
+	for k2, v2 := range v {
+		r = append(r, list(k+"."+k2, v2)...)
+	}
+	if len(r) == 0 {
+		r = append(r, k)
+	}
+	return r
+}

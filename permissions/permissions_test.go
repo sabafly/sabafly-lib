@@ -1,6 +1,7 @@
 package permissions_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/sabafly/sabafly-lib/v2/permissions"
@@ -9,9 +10,11 @@ import (
 func TestPerm(t *testing.T) {
 	p := permissions.New().
 		Add("test.perm").
+		Add("test.yes.no").
 		Add("test.yes.perm").
 		Add("test2.yes").
 		Add("test3.*")
+	fmt.Println(p.List())
 	if !p.Has("test.perm") {
 		t.Errorf("no test.perm %v", p)
 	}
