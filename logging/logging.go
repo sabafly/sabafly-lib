@@ -15,7 +15,7 @@ import (
 )
 
 func New(cfg Config) (*Logging, error) {
-	_ = os.Mkdir(filepath.Clean(cfg.LogPath), os.ModeDir)
+	_ = os.Mkdir(filepath.Clean(cfg.LogPath), 0755)
 	if cfg.LogName == "" {
 		cfg.LogName = "latest.log"
 	}
