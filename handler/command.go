@@ -70,7 +70,7 @@ func (h *Handler) handleAutocomplete(event *events.AutocompleteInteractionCreate
 	name := event.Data.CommandName
 	cmd, ok := h.Commands[name]
 	if !ok || cmd.AutocompleteHandlers == nil {
-		h.Logger.Errorf("No command or handler found for \"%s\"", name)
+		h.Logger.Errorf("No autocomplete or handler found for \"%s\"", name)
 	}
 
 	if cmd.AutocompleteCheck != nil && !cmd.AutocompleteCheck(event) {
@@ -85,12 +85,12 @@ func (h *Handler) handleAutocomplete(event *events.AutocompleteInteractionCreate
 
 	handler, ok := cmd.AutocompleteHandlers[path]
 	if !ok {
-		h.Logger.Warnf("No autocomplete handler for command \"%s\" with path \"%s\" found", name, path)
+		h.Logger.Warnf("No autocomplete handler for autocomplete \"%s\" with path \"%s\" found", name, path)
 		return
 	}
 
 	if err := handler(event); err != nil {
-		h.Logger.Errorf("Failed to handle autocomplete for command \"%s\" with path \"%s\": %s", name, path, err)
+		h.Logger.Errorf("Failed to handle autocomplete for autocomplete \"%s\" with path \"%s\": %s", name, path, err)
 	}
 }
 
