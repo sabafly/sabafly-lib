@@ -114,7 +114,7 @@ func (l *Logging) write() error {
 		return fmt.Errorf("error on os open: %w", err)
 	}
 
-	gz, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE|os.O_EXCL, 0755)
+	gz, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0755)
 	for err != nil {
 		gz.Close()
 		l.seq++
@@ -123,7 +123,7 @@ func (l *Logging) write() error {
 			path = strings.TrimSuffix(l.config.LogName, filepath.Ext(l.config.LogName)) + "-" + path
 		}
 		path = filepath.Join(l.config.LogPath, path)
-		gz, err = os.OpenFile(path, os.O_RDONLY|os.O_CREATE|os.O_EXCL, 0755)
+		gz, err = os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0755)
 	}
 	defer gz.Close()
 	gw := gzip.NewWriter(gz)
