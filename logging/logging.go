@@ -105,14 +105,18 @@ func (l *Logging) write() error {
 	}
 	path = filepath.Join(l.config.LogPath, path)
 
-	if err := l.file.Close(); err != nil {
-		return fmt.Errorf("error on close: %w", err)
-	}
+	l.file.Close()
+
+	os.Remove(filepath.Join(l.config.LogPath, l.config.LogName))
 
 	o, err := os.OpenFile(filepath.Join(l.config.LogPath, l.config.LogName), os.O_RDWR|os.O_SYNC|os.O_CREATE, 0755)
 	if err != nil {
 		return fmt.Errorf("error on os open: %w", err)
 	}
+
+	defer func() {
+		l.file = o
+	}()
 
 	gz, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0755)
 	for err != nil {
@@ -143,7 +147,6 @@ func (l *Logging) write() error {
 		return fmt.Errorf("error on seek: %w", err)
 	}
 
-	l.file = o
 	l.lines = 0
 	return nil
 }
