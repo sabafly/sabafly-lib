@@ -143,9 +143,7 @@ func (l *Logging) write() error {
 	if err := o.Truncate(0); err != nil {
 		return fmt.Errorf("error on truncate: %w", err)
 	}
-	if _, err := o.Seek(0, -1); err != nil {
-		return fmt.Errorf("error on seek: %w", err)
-	}
+	_, _ = o.Seek(0, io.SeekStart)
 
 	l.lines = 0
 	return nil
