@@ -29,6 +29,7 @@ import (
 	"github.com/sabafly/disgo/discord"
 	"github.com/sabafly/disgo/events"
 	"github.com/sabafly/disgo/gateway"
+	"github.com/sabafly/disgo/handlers"
 	"github.com/sabafly/disgo/oauth2"
 	"github.com/sabafly/disgo/sharding"
 )
@@ -60,7 +61,7 @@ func (b *Bot[T]) SetupBot(listeners ...bot.EventListener) {
 		bot.WithCacheConfigOpts(cache.WithCaches(cache.FlagsAll)),
 		bot.WithShardManagerConfigOpts(sharding.WithAutoScaling(true), sharding.WithGatewayConfigOpts(gateway.WithIntents(gateway.IntentsAll), gateway.WithAutoReconnect(true), gateway.WithLogger(b.Logger))),
 		bot.WithMemberChunkingFilter(bot.MemberChunkingFilterAll),
-		bot.WithEventManagerConfigOpts(bot.WithAsyncEventsEnabled(), bot.WithListeners(listeners...), bot.WithEventManagerLogger(b.Logger)),
+		bot.WithEventManagerConfigOpts(bot.WithAsyncEventsEnabled(), bot.WithListeners(listeners...), bot.WithEventManagerLogger(b.Logger), bot.WithGatewayHandlers(handlers.GetGatewayHandlers())),
 	)
 	if err != nil {
 		b.Logger.Fatalf("botのセットアップに失敗 %s", err)
