@@ -62,6 +62,7 @@ type Logging struct {
 	seq      int
 	lines    int
 	file     *os.File
+	lastDate int
 	fileInfo os.FileInfo
 }
 
@@ -92,6 +93,9 @@ func (l *Logging) Log(lvl, message string, t time.Time) error {
 func (l *Logging) write() error {
 	l.Lock()
 	defer l.Unlock()
+	if l.lastDate != time.Now().Day() {
+		l.seq = 0
+	}
 	if err := l.file.Sync(); err != nil {
 		return fmt.Errorf("error on sync: %w", err)
 	}
@@ -146,5 +150,6 @@ func (l *Logging) write() error {
 	_, _ = o.Seek(0, io.SeekStart)
 
 	l.lines = 0
+	l.lastDate = time.Now().Day()
 	return nil
 }
