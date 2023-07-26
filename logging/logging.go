@@ -42,7 +42,7 @@ func New(cfg Config) (*Logging, error) {
 		file:     o,
 		fileInfo: fi,
 	}
-	if time.Now().Add(-3*time.Hour).After(l.time) || l.lines > 512 {
+	if (time.Now().Add(-12*time.Hour).After(l.time) && l.lines > 0) || (time.Now().Add(-3*time.Hour).After(l.time) && l.lines > 512) {
 		if err := l.write(); err != nil {
 			return nil, fmt.Errorf("error on write: %w", err)
 		}
