@@ -75,7 +75,7 @@ func (l *Logging) Fire(entry *logrus.Entry) error {
 }
 
 func (l *Logging) Log(lvl, message string, t time.Time) error {
-	if t.Add(-3*time.Hour).After(l.time) || l.lines > 512 {
+	if (t.Add(-12*time.Hour).After(l.time) && l.lines > 0) || (t.Add(-3*time.Hour).After(l.time) && l.lines > 512) {
 		if err := l.write(); err != nil {
 			return err
 		}
