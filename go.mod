@@ -4,22 +4,23 @@ go 1.20
 
 require (
 	github.com/disgoorg/json v1.1.0
-	github.com/disgoorg/log v1.2.0
+	github.com/disgoorg/log v1.2.1
 	github.com/disgoorg/snowflake/v2 v2.0.1
 	github.com/forPelevin/gomoji v1.1.8
 	github.com/gin-gonic/gin v1.9.1
 	github.com/google/uuid v1.3.0
 	github.com/nicksnyder/go-i18n/v2 v2.2.1
-	github.com/pelletier/go-toml/v2 v2.0.8
-	github.com/sabafly/disgo v0.4.1
+	github.com/pelletier/go-toml/v2 v2.0.9
+	github.com/sabafly/disgo v0.5.0
 	github.com/sirupsen/logrus v1.9.3
-	golang.org/x/text v0.11.0
+	golang.org/x/text v0.12.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
-	github.com/bytedance/sonic v1.9.2 // indirect
-	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
+	github.com/bytedance/sonic v1.10.0-rc3 // indirect
+	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
+	github.com/chenzhuoyu/iasm v0.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
@@ -38,10 +39,10 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	golang.org/x/arch v0.4.0 // indirect
-	golang.org/x/crypto v0.11.0 // indirect
-	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df // indirect
-	golang.org/x/net v0.12.0 // indirect
-	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/crypto v0.12.0 // indirect
+	golang.org/x/exp v0.0.0-20230801115018-d63ba01acd4b // indirect
+	golang.org/x/net v0.14.0 // indirect
+	golang.org/x/sys v0.11.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
