@@ -187,7 +187,6 @@ func MessageMap(key string, replace bool, opts ...Option) *map[discord.Locale]st
 		discord.LocaleTurkish:      Message(discord.LocaleTurkish, key, opts...),
 		discord.LocaleUkrainian:    Message(discord.LocaleUkrainian, key, opts...),
 		discord.LocaleVietnamese:   Message(discord.LocaleVietnamese, key, opts...),
-		discord.LocaleUnknown:      Message(discord.LocaleUnknown, key, opts...),
 	}
 	if replace {
 		for l, v := range res {

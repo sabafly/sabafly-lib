@@ -1,6 +1,6 @@
 module github.com/sabafly/sabafly-lib/v2
 
-go 1.20
+go 1.21
 
 require (
 	github.com/disgoorg/json v1.1.0
