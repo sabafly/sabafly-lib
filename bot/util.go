@@ -377,6 +377,14 @@ func FormatComponentEmoji(e discord.ComponentEmoji) string {
 	}
 }
 
+func ReactionComponentEmoji(e discord.ComponentEmoji) string {
+	var zeroID snowflake.ID
+	if e.ID == zeroID {
+		return e.Name
+	}
+	return fmt.Sprintf("%s:%d", e.Name, e.ID)
+}
+
 func GetHighestRolePosition(role map[snowflake.ID]discord.Role) (int, snowflake.ID) {
 	var max int
 	var id snowflake.ID
