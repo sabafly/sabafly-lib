@@ -11,6 +11,7 @@ import (
 	"github.com/sabafly/sabafly-lib/v2/emoji"
 	"github.com/sabafly/sabafly-lib/v2/translate"
 
+	"github.com/disgoorg/json"
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/sabafly/disgo/bot"
 	"github.com/sabafly/disgo/discord"
@@ -58,6 +59,8 @@ func SetEmbedsProperties(embeds []discord.Embed) []discord.Embed {
 }
 
 type responsibleInteraction interface {
+	ApplicationID() snowflake.ID
+	Token() string
 	Locale() discord.Locale
 	CreateMessage(discord.MessageCreate, ...rest.RequestOpt) error
 }
@@ -69,26 +72,43 @@ func ReturnErr(interaction responsibleInteraction, err error, opts ...ReturnErrO
 	}
 	embeds := ErrorTraceEmbed(interaction.Locale(), err)
 	embeds = SetEmbedsProperties(embeds)
-	if err2 := interaction.CreateMessage(discord.MessageCreate{
-		Embeds: embeds,
-		Flags: func() discord.MessageFlags {
-			if cfg.Ephemeral {
-				return discord.MessageFlagEphemeral
-			} else {
-				return 0
-			}
-		}(),
-	}); err2 != nil {
-		return fmt.Errorf("%w: %w", err, err2)
+	if cfg.Update {
+		if _, err2 := cfg.UpdateClient.Rest().UpdateInteractionResponse(interaction.ApplicationID(), interaction.Token(), discord.MessageUpdate{
+			Embeds: &embeds,
+			Flags: func() *discord.MessageFlags {
+				if cfg.Ephemeral {
+					return json.Ptr(discord.MessageFlagEphemeral)
+				} else {
+					return json.Ptr(discord.MessageFlagsNone)
+				}
+			}(),
+		}); err2 != nil {
+			return fmt.Errorf("%w: %w", err, err2)
+		}
+	} else {
+		if err2 := interaction.CreateMessage(discord.MessageCreate{
+			Embeds: embeds,
+			Flags: func() discord.MessageFlags {
+				if cfg.Ephemeral {
+					return discord.MessageFlagEphemeral
+				} else {
+					return 0
+				}
+			}(),
+		}); err2 != nil {
+			return fmt.Errorf("%w: %w", err, err2)
+		}
 	}
 	return err
 }
 
 type ReturnErrCfg struct {
-	Ephemeral           bool   `json:"ephemeral"`
-	TranslateData       []any  `json:"translate_data"`
-	FallBackTitle       string `json:"fallback_title"`
-	FallBackDescription string `json:"fallback_description"`
+	Ephemeral           bool
+	TranslateData       []any
+	FallBackTitle       string
+	FallBackDescription string
+	Update              bool
+	UpdateClient        bot.Client
 }
 
 type ReturnErrOption func(*ReturnErrCfg)
@@ -96,6 +116,13 @@ type ReturnErrOption func(*ReturnErrCfg)
 func WithEphemeral(enabled bool) ReturnErrOption {
 	return func(rec *ReturnErrCfg) {
 		rec.Ephemeral = enabled
+	}
+}
+
+func WithUpdate(enabled bool, client bot.Client) ReturnErrOption {
+	return func(rec *ReturnErrCfg) {
+		rec.Update = enabled
+		rec.UpdateClient = client
 	}
 }
 
@@ -128,11 +155,20 @@ func ReturnErrMessage(interaction responsibleInteraction, tr string, opts ...Ret
 	if cfg.Ephemeral {
 		flags = discord.MessageFlagEphemeral
 	}
-	if err := interaction.CreateMessage(discord.MessageCreate{
-		Embeds: embeds,
-		Flags:  flags,
-	}); err != nil {
-		return err
+	if cfg.Update {
+		if _, err := cfg.UpdateClient.Rest().UpdateInteractionResponse(interaction.ApplicationID(), interaction.Token(), discord.MessageUpdate{
+			Embeds: &embeds,
+			Flags:  &flags,
+		}); err != nil {
+			return err
+		}
+	} else {
+		if err := interaction.CreateMessage(discord.MessageCreate{
+			Embeds: embeds,
+			Flags:  flags,
+		}); err != nil {
+			return err
+		}
 	}
 	return nil
 }
