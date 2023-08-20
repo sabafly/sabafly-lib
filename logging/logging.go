@@ -1,13 +1,11 @@
 package logging
 
 import (
-	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -19,36 +17,62 @@ func New(cfg Config) (*Logging, error) {
 	if cfg.LogName == "" {
 		cfg.LogName = "latest.log"
 	}
-	o, err := os.OpenFile(filepath.Join(cfg.LogPath, cfg.LogName), os.O_RDWR|os.O_SYNC|os.O_CREATE, 0755)
+	log_file, err := os.OpenFile(filepath.Join(cfg.LogPath, cfg.LogName), os.O_RDWR|os.O_SYNC|os.O_CREATE, 0755)
 	if err != nil {
 		return nil, err
 	}
-	var lines, seq int
-	seq = 1
-	fi, err := o.Stat()
-	if err != nil {
-		return nil, err
-	}
-	buf, err := io.ReadAll(o)
-	if err != nil {
-		return nil, err
-	}
-	lines = bytes.Count(buf, []byte("\n"))
+	_, _ = log_file.Seek(0, 2)
+
 	l := &Logging{
-		config:   cfg,
-		time:     fi.ModTime(),
-		seq:      seq,
-		lines:    lines,
-		file:     o,
-		fileInfo: fi,
-	}
-	if (time.Now().Add(-12*time.Hour).After(l.time) && l.lines > 0) || (time.Now().Add(-3*time.Hour).After(l.time) && l.lines > 512) {
-		if err := l.write(); err != nil {
-			return nil, fmt.Errorf("error on write: %w", err)
-		}
+		config: cfg,
+		file:   log_file,
 	}
 
+	go l.moveScheduler()
+
 	return l, nil
+}
+
+func (l *Logging) moveScheduler() {
+	tick := time.NewTicker(time.Hour * 6)
+	for {
+		<-tick.C
+		_ = l.move()
+	}
+}
+
+var time_format string = "2006_01_02_15_04_05"
+
+func (l *Logging) move() error {
+	if l.lines < 1024 {
+		return nil
+	}
+	l.Lock()
+	defer l.Unlock()
+	_, _ = l.file.Seek(0, 0)
+	buf, err := io.ReadAll(l.file)
+	if err != nil {
+		return err
+	}
+	copy_file, err := os.OpenFile(filepath.Join(l.config.LogPath, fmt.Sprintf("%s%s.gz", l.config.Prefix, time.Now().Format(time_format))), os.O_RDWR|os.O_SYNC|os.O_CREATE, 0755)
+	if err != nil {
+		return err
+	}
+	defer copy_file.Close()
+	gz := gzip.NewWriter(copy_file)
+	defer gz.Close()
+	if _, err := gz.Write(buf); err != nil {
+		return err
+	}
+
+	if err := l.file.Truncate(0); err != nil {
+		return err
+	}
+	_, _ = l.file.Seek(0, 0)
+
+	l.lines = 0
+
+	return nil
 }
 
 func (l *Logging) Close() error {
@@ -57,13 +81,9 @@ func (l *Logging) Close() error {
 
 type Logging struct {
 	sync.Mutex
-	config   Config
-	time     time.Time
-	seq      int
-	lines    int
-	file     *os.File
-	lastDate int
-	fileInfo os.FileInfo
+	config Config
+	lines  int
+	file   *os.File
 }
 
 func (l *Logging) Levels() []logrus.Level {
@@ -75,81 +95,11 @@ func (l *Logging) Fire(entry *logrus.Entry) error {
 }
 
 func (l *Logging) Log(lvl, message string, t time.Time) error {
-	if (t.Add(-12*time.Hour).After(l.time) && l.lines > 0) || (t.Add(-3*time.Hour).After(l.time) && l.lines > 512) {
-		if err := l.write(); err != nil {
-			return err
-		}
-	}
 	l.Lock()
 	defer l.Unlock()
-	if _, err := l.file.WriteString(fmt.Sprintf("[%s] [%s]: %s\n", t.Format(time.TimeOnly), lvl, message)); err != nil {
+	if _, err := l.file.WriteString(fmt.Sprintf("[%s] [%s]: %s\r\n", t.Format(time.DateTime), lvl, message)); err != nil {
 		return err
 	}
-	l.time = t
 	l.lines++
-	return nil
-}
-
-func (l *Logging) write() error {
-	l.Lock()
-	defer l.Unlock()
-	if l.lastDate != time.Now().Day() {
-		l.seq = 0
-	}
-	if err := l.file.Sync(); err != nil {
-		return fmt.Errorf("error on sync: %w", err)
-	}
-	fi, err := l.file.Stat()
-	if err != nil {
-		return fmt.Errorf("error on file stat: %w", err)
-	}
-	path := fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), l.seq)
-	if l.config.LogName != "latest.log" {
-		path = strings.TrimSuffix(l.config.LogName, filepath.Ext(l.config.LogName)) + "-" + path
-	}
-	path = filepath.Join(l.config.LogPath, path)
-
-	l.file.Close()
-
-	os.Remove(filepath.Join(l.config.LogPath, l.config.LogName))
-
-	o, err := os.OpenFile(filepath.Join(l.config.LogPath, l.config.LogName), os.O_RDWR|os.O_SYNC|os.O_CREATE, 0755)
-	if err != nil {
-		return fmt.Errorf("error on os open: %w", err)
-	}
-
-	defer func() {
-		l.file = o
-	}()
-
-	gz, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0755)
-	for err != nil {
-		gz.Close()
-		l.seq++
-		path = fmt.Sprintf("%s-%d.gz", fi.ModTime().Format(time.DateOnly), l.seq)
-		if l.config.LogName != "latest.log" {
-			path = strings.TrimSuffix(l.config.LogName, filepath.Ext(l.config.LogName)) + "-" + path
-		}
-		path = filepath.Join(l.config.LogPath, path)
-		gz, err = os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0755)
-	}
-	defer gz.Close()
-	gw := gzip.NewWriter(gz)
-	defer gw.Close()
-	gw.Header = gzip.Header{
-		Name:    l.config.LogName,
-		ModTime: fi.ModTime(),
-	}
-	if _, err := io.Copy(gw, o); err != nil {
-		return fmt.Errorf("error on io copy: %w", err)
-	}
-
-	if err := o.Truncate(0); err != nil {
-		return fmt.Errorf("error on truncate: %w", err)
-	}
-	_, _ = o.Seek(0, io.SeekStart)
-
-	l.lines = 0
-	l.lastDate = time.Now().Day()
 	return nil
 }
