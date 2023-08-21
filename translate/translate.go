@@ -44,6 +44,8 @@ func SetDefaultLanguage(lang language.Tag) {
 type Cfg struct {
 	Fallback         string
 	FallbackLanguage discord.Locale
+	TemplateData     any
+	PluralCount      int
 }
 
 type Option func(*Cfg)
@@ -57,6 +59,18 @@ func WithFallback(fallback string) Option {
 func WithFallBackLanguage(lang discord.Locale) Option {
 	return func(c *Cfg) {
 		c.FallbackLanguage = lang
+	}
+}
+
+func WithTemplate(data any) Option {
+	return func(c *Cfg) {
+		c.TemplateData = data
+	}
+}
+
+func WithPluralCount(count int) Option {
+	return func(c *Cfg) {
+		c.PluralCount = count
 	}
 }
 
@@ -117,26 +131,16 @@ var (
 )
 
 func Message(locale discord.Locale, messageId string, opts ...Option) (res string) {
-	res = Translate(locale, messageId, map[string]any{}, opts...)
-	return
-}
-
-func Translate(locale discord.Locale, messageId string, templateData any, opt ...Option) (res string) {
-	res = Translates(locale, messageId, templateData, 2, opt...)
-	return
-}
-
-func Translates(locale discord.Locale, messageId string, templateData any, pluralCount int, opts ...Option) string {
-	res, err := localizer.Localize(&i18n.LocalizeConfig{
-		MessageID:    messageId,
-		TemplateData: templateData,
-		PluralCount:  pluralCount,
-	})
 	opt := new(Cfg)
 	opt.FallbackLanguage = discord.LocaleJapanese
 	for _, o := range opts {
 		o(opt)
 	}
+	res, err := localizer.Localize(&i18n.LocalizeConfig{
+		MessageID:    messageId,
+		TemplateData: opt.TemplateData,
+		PluralCount:  opt.PluralCount,
+	})
 	if err != nil {
 		res = messageId
 		if opt.Fallback != "" {
@@ -151,7 +155,17 @@ func Translates(locale discord.Locale, messageId string, templateData any, plura
 			}
 		}
 	}
-	return res
+	return
+}
+
+// Deprecated: Use [github.com/sabafly/sabafly-lib/translate.WithTemplate] Option
+func Translate(locale discord.Locale, messageId string, templateData any, opt ...Option) (res string) {
+	return Message(locale, messageId, WithTemplate(templateData))
+}
+
+// Deprecated: Use [github.com/sabafly/sabafly-lib/translate.WithPluralCount] Option
+func Translates(locale discord.Locale, messageId string, templateData any, pluralCount int, opts ...Option) string {
+	return Message(locale, messageId, WithTemplate(templateData), WithPluralCount(pluralCount))
 }
 
 func MessageMap(key string, replace bool, opts ...Option) *map[discord.Locale]string {

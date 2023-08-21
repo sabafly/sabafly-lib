@@ -186,7 +186,7 @@ func ErrorMessageEmbed(locale discord.Locale, t string, opts ...ReturnErrOption)
 	embeds := []discord.Embed{
 		{
 			Title:       translate.Message(locale, t+"_title", translate.WithFallback(cfg.FallBackTitle)),
-			Description: translate.Translate(locale, t+"_message", td, translate.WithFallback(cfg.FallBackDescription)),
+			Description: translate.Message(locale, t+"_message", translate.WithTemplate(td), translate.WithFallback(cfg.FallBackDescription)),
 			Color:       0xff0000,
 		},
 	}
@@ -229,13 +229,13 @@ func StatusString(status discord.OnlineStatus) (str string) {
 func ActivitiesNameString(locale discord.Locale, activity discord.Activity) (str string) {
 	switch activity.Type {
 	case discord.ActivityTypeGame:
-		str = translate.Translate(locale, "activity_game_name", map[string]any{"Name": activity.Name})
+		str = translate.Message(locale, "activity_game_name", translate.WithTemplate(map[string]any{"Name": activity.Name}))
 	case discord.ActivityTypeStreaming:
-		str = translate.Translate(locale, "activity_streaming_name", map[string]any{"Details": activity.Details, "URL": activity.URL})
+		str = translate.Message(locale, "activity_streaming_name", translate.WithTemplate(map[string]any{"Details": activity.Details, "URL": activity.URL}))
 	case discord.ActivityTypeListening:
-		str = translate.Translate(locale, "activity_listening_name", map[string]any{"Name": activity.Name})
+		str = translate.Message(locale, "activity_listening_name", translate.WithTemplate(map[string]any{"Name": activity.Name}))
 	case discord.ActivityTypeWatching:
-		str = translate.Translate(locale, "activity_watching_name", map[string]any{"Name": activity.Name})
+		str = translate.Message(locale, "activity_watching_name", translate.WithTemplate(map[string]any{"Name": activity.Name}))
 	case discord.ActivityTypeCustom:
 		if activity.Emoji != nil {
 			return
@@ -245,7 +245,7 @@ func ActivitiesNameString(locale discord.Locale, activity discord.Activity) (str
 			str = discord.EmojiMention(*activity.Emoji.ID, *activity.Emoji.Name) + " " + activity.Name
 		}
 	case discord.ActivityTypeCompeting:
-		str = translate.Translate(locale, "activity_competing_name", map[string]any{"Name": activity.Name})
+		str = translate.Message(locale, "activity_competing_name", translate.WithTemplate(map[string]any{"Name": activity.Name}))
 	}
 	return str
 }
