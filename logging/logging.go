@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,11 +22,16 @@ func New(cfg Config) (*Logging, error) {
 	if err != nil {
 		return nil, err
 	}
+	buf, err := io.ReadAll(log_file)
+	if err != nil {
+		return nil, err
+	}
 	_, _ = log_file.Seek(0, 2)
 
 	l := &Logging{
 		config: cfg,
 		file:   log_file,
+		lines:  strings.Count(string(buf), "\r\n"),
 	}
 
 	go l.moveScheduler()
@@ -34,7 +40,7 @@ func New(cfg Config) (*Logging, error) {
 }
 
 func (l *Logging) moveScheduler() {
-	tick := time.NewTicker(time.Hour * 6)
+	tick := time.NewTicker(time.Hour)
 	for {
 		<-tick.C
 		_ = l.move()
@@ -95,6 +101,9 @@ func (l *Logging) Fire(entry *logrus.Entry) error {
 }
 
 func (l *Logging) Log(lvl, message string, t time.Time) error {
+	if l.lines > 2048 {
+		_ = l.move()
+	}
 	l.Lock()
 	defer l.Unlock()
 	if _, err := l.file.WriteString(fmt.Sprintf("[%s] [%s]: %s\r\n", t.Format(time.DateTime), lvl, message)); err != nil {
