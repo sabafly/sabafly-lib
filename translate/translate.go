@@ -168,7 +168,7 @@ func Translates(locale discord.Locale, messageId string, templateData any, plura
 	return Message(locale, messageId, WithTemplate(templateData), WithPluralCount(pluralCount))
 }
 
-func MessageMap(key string, replace bool, opts ...Option) *map[discord.Locale]string {
+func MessageMap(key string, replace bool, opts ...Option) map[discord.Locale]string {
 	res := map[discord.Locale]string{
 		discord.LocaleEnglishUS:    Message(discord.LocaleEnglishUS, key, opts...),
 		discord.LocaleEnglishGB:    Message(discord.LocaleEnglishGB, key, opts...),
@@ -207,5 +207,5 @@ func MessageMap(key string, replace bool, opts ...Option) *map[discord.Locale]st
 			res[l] = strings.ReplaceAll(v, " ", "-")
 		}
 	}
-	return &res
+	return res
 }
