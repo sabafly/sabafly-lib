@@ -10,6 +10,7 @@ import (
 func TestPerm(t *testing.T) {
 	p := permissions.New().
 		Add("test.perm").
+		Add("test.perm.test").
 		Add("test.yes.no").
 		Add("test.yes.perm").
 		Add("test2.yes").
@@ -37,4 +38,5 @@ func TestPerm(t *testing.T) {
 	if !p.Has("test3.test.yes") {
 		t.Errorf("no test3.test.yes %v", p)
 	}
+	fmt.Println(p.List())
 }

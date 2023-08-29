@@ -77,7 +77,9 @@ func (p Permission) List() (r []string) {
 }
 
 func list(k string, v Permission) (r []string) {
-	r = append(r, k)
+	if len(v) < 1 {
+		r = append(r, k)
+	}
 	for k2, v2 := range v {
 		r = append(r, list(k+"."+k2, v2)...)
 	}
