@@ -26,11 +26,15 @@ type Page[T any] struct {
 	Child []*Page[T]
 }
 
+type HandlerFunc[T any] func(*Server[T], *gin.Context)
+
+type HandlerCheck[T any] func(*Server[T], *gin.Context) bool
+
 // メソッドとハンダラの構造体
 type Handler[T any] struct {
 	Method  string
-	Check   func(*Server[T], *gin.Context) bool
-	Handler func(*Server[T], *gin.Context)
+	Check   HandlerCheck[T]
+	Handler HandlerFunc[T]
 }
 
 // 新たなサーバー構造を生成する

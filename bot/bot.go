@@ -17,17 +17,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 package botlib
 
 import (
-	"context"
-	"fmt"
-
 	"github.com/sabafly/sabafly-lib/v2/handler"
 
 	"github.com/disgoorg/log"
 	"github.com/sabafly/disgo"
 	"github.com/sabafly/disgo/bot"
 	"github.com/sabafly/disgo/cache"
-	"github.com/sabafly/disgo/discord"
-	"github.com/sabafly/disgo/events"
 	"github.com/sabafly/disgo/gateway"
 	"github.com/sabafly/disgo/handlers"
 	"github.com/sabafly/disgo/oauth2"
@@ -65,53 +60,5 @@ func (b *Bot[T]) SetupBot(listeners ...bot.EventListener) {
 	)
 	if err != nil {
 		b.Logger.Fatalf("botのセットアップに失敗 %s", err)
-	}
-}
-
-func (b *Bot[T]) OnGuildJoin(g *events.GuildJoin) {
-	b.Logger.Infof("[#%d]ギルド参加 %3dメンバー 作成 %s 名前 %s(%d)", g.ShardID(), g.Guild.MemberCount, g.Guild.CreatedAt().String(), g.Guild.Name, g.GuildID)
-	go b.RefreshPresence()
-}
-
-func (b *Bot[T]) OnGuildLeave(g *events.GuildLeave) {
-	b.Logger.Infof("[#%d]ギルド脱退 %3dメンバー 作成 %s 名前 %s(%d)", g.ShardID(), g.Guild.MemberCount, g.Guild.CreatedAt().String(), g.Guild.Name, g.GuildID)
-	b.Client.Caches().RemoveGuild(g.GuildID)
-	b.Client.Caches().RemoveMembersByGuildID(g.GuildID)
-	go b.RefreshPresence()
-}
-
-func (b *Bot[T]) OnGuildMemberJoin(m *events.GuildMemberJoin) {
-	if g, ok := m.Client().Caches().Guild(m.GuildID); ok {
-		b.Logger.Infof("[#%d]ギルドメンバー参加 %32s#%s(%d) ギルド %s(%d) %3d メンバー", m.ShardID(), m.Member.User.Username, m.Member.User.Discriminator, m.Member.User.ID, g.Name, g.ID, g.MemberCount)
-	}
-	go b.RefreshPresence()
-}
-
-func (b *Bot[T]) OnGuildMemberLeave(m *events.GuildMemberLeave) {
-	if g, ok := m.Client().Caches().Guild(m.GuildID); ok {
-		b.Logger.Infof("[#%d]ギルドメンバー脱退 %32s#%s(%d) ギルド %s(%d) %3d メンバー", m.ShardID(), m.Member.User.Username, m.Member.User.Discriminator, m.Member.User.ID, g.Name, g.ID, g.MemberCount)
-	}
-	b.Client.Caches().RemoveMember(m.GuildID, m.User.ID)
-	go b.RefreshPresence()
-}
-
-func (b *Bot[T]) RefreshPresence() {
-	var (
-		guilds int = b.Client.Caches().GuildsLen()
-		users  int = b.Client.Caches().MembersAllLen()
-	)
-	shards := b.Client.ShardManager().Shards()
-	for k := range shards {
-		state := fmt.Sprintf("/help | %d Servers | %d Users | #%d", guilds, users, k)
-		if err := b.Client.SetPresenceForShard(context.TODO(), k, gateway.WithOnlineStatus(discord.OnlineStatusOnline), gateway.WithPlayingActivity(state)); err != nil {
-			b.Logger.Errorf("ステータス更新に失敗 %s", err)
-		}
-	}
-	if len(shards) == 0 {
-		state := fmt.Sprintf("/help | %d Servers | %d Users", guilds, users)
-		err := b.Client.SetPresence(context.TODO(), gateway.WithPlayingActivity(state))
-		if err != nil {
-			b.Logger.Errorf("ステータス更新に失敗 %s", err)
-		}
 	}
 }
