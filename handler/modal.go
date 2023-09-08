@@ -3,16 +3,17 @@ package handler
 import (
 	"strings"
 
-	"github.com/sabafly/disgo/events"
+	"github.com/sabafly/sabafly-disgo/events"
 )
 
 type ModalHandler func(event *events.ModalSubmitInteractionCreate) error
 
 type Modal struct {
-	Name    string
-	Check   Check[*events.ModalSubmitInteractionCreate]
-	Checks  map[string]Check[*events.ModalSubmitInteractionCreate]
-	Handler map[string]ModalHandler
+	Name      string
+	Check     Check[*events.ModalSubmitInteractionCreate]
+	Checks    map[string]Check[*events.ModalSubmitInteractionCreate]
+	Handler   map[string]ModalHandler
+	Ephemeral map[string]bool
 }
 
 func (h *Handler) handleModal(event *events.ModalSubmitInteractionCreate) {
@@ -49,6 +50,7 @@ func (h *Handler) handleModal(event *events.ModalSubmitInteractionCreate) {
 		h.Logger.Debugf("不明なハンダラ %s", subName)
 		return
 	}
+	defer deferUpdateInteraction(event, modal.Ephemeral != nil && modal.Ephemeral[subName])
 	if err := handler(event); err != nil {
 		h.Logger.Errorf("Failed to handle modal interaction for \"%s\" : %s", modalName, err)
 	}

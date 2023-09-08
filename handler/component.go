@@ -3,16 +3,17 @@ package handler
 import (
 	"strings"
 
-	"github.com/sabafly/disgo/events"
+	"github.com/sabafly/sabafly-disgo/events"
 )
 
 type ComponentHandler func(event *events.ComponentInteractionCreate) error
 
 type Component struct {
-	Name    string
-	Check   Check[*events.ComponentInteractionCreate]
-	Checks  map[string]Check[*events.ComponentInteractionCreate]
-	Handler map[string]ComponentHandler
+	Name      string
+	Check     Check[*events.ComponentInteractionCreate]
+	Checks    map[string]Check[*events.ComponentInteractionCreate]
+	Handler   map[string]ComponentHandler
+	Ephemeral map[string]bool
 }
 
 func (h *Handler) handleComponent(event *events.ComponentInteractionCreate) {
@@ -53,6 +54,8 @@ func (h *Handler) handleComponent(event *events.ComponentInteractionCreate) {
 		}
 		return
 	}
+
+	defer deferUpdateInteraction(event, component.Ephemeral != nil && component.Ephemeral[subName])
 	if err := handler(event); err != nil {
 		h.Logger.Errorf("Failed to handle component interaction for \"%s\" : %s", componentName, err)
 	}

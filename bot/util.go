@@ -13,9 +13,9 @@ import (
 
 	"github.com/disgoorg/json"
 	"github.com/disgoorg/snowflake/v2"
-	"github.com/sabafly/disgo/bot"
-	"github.com/sabafly/disgo/discord"
-	"github.com/sabafly/disgo/rest"
+	"github.com/sabafly/sabafly-disgo/bot"
+	"github.com/sabafly/sabafly-disgo/discord"
+	"github.com/sabafly/sabafly-disgo/rest"
 )
 
 // 埋め込みの色、フッター、タイムスタンプを設定する

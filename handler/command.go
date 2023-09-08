@@ -1,8 +1,11 @@
 package handler
 
 import (
-	"github.com/sabafly/disgo/discord"
-	"github.com/sabafly/disgo/events"
+	"time"
+
+	"github.com/sabafly/sabafly-disgo/discord"
+	"github.com/sabafly/sabafly-disgo/events"
+	"github.com/sabafly/sabafly-disgo/rest"
 )
 
 type (
@@ -18,6 +21,7 @@ type Command struct {
 	AutocompleteChecks   map[string]Check[*events.AutocompleteInteractionCreate]
 	CommandHandlers      map[string]CommandHandler
 	AutocompleteHandlers map[string]AutocompleteHandler
+	Ephemeral            map[string]bool
 
 	DevOnly bool
 }
@@ -26,13 +30,17 @@ func (h *Handler) handleCommand(event *events.ApplicationCommandInteractionCreat
 	if h.IsLogEvent {
 		switch d := event.Data.(type) {
 		case discord.SlashCommandInteractionData:
-			h.Logger.Infof("%s(%s) used %s command type %d", event.Member().User.Tag(), event.Member().User.ID, d.CommandPath(), d.Type())
+			h.Logger.Infof("%s(%s) used %s command type %d", event.User().Tag(), event.User().ID, d.CommandPath(), d.Type())
 		case discord.UserCommandInteractionData:
-			h.Logger.Infof("%s(%s) used %s command target %s type %d", event.Member().User.Tag(), event.Member().User.ID, d.CommandName(), d.TargetID(), d.Type())
+			h.Logger.Infof("%s(%s) used %s command target %s type %d",
+				event.User().Tag(), event.User().ID, d.CommandName(), d.TargetID(), d.Type(),
+			)
 		case discord.MessageCommandInteractionData:
-			h.Logger.Infof("%s(%s) used %s command target %s type %d", event.Member().User.Tag(), event.Member().User.ID, d.CommandName(), d.TargetMessage().JumpURL(), d.Type())
+			h.Logger.Infof("%s(%s) used %s command target %s type %d",
+				event.User().Tag(), event.User().ID, d.CommandName(), d.TargetMessage().JumpURL(), d.Type(),
+			)
 		default:
-			h.Logger.Infof("%s(%s) used %s command type %d", event.Member().User.Tag(), event.Member().User.ID, d.CommandName(), d.Type())
+			h.Logger.Infof("%s(%s) used %s command type %d", event.User().Tag(), event.User().ID, d.CommandName(), d.Type())
 		}
 	}
 	name := event.Data.CommandName()
@@ -61,9 +69,19 @@ func (h *Handler) handleCommand(event *events.ApplicationCommandInteractionCreat
 		return
 	}
 
+	defer deferUpdateInteraction(event, cmd.Ephemeral != nil && cmd.Ephemeral[path])
 	if err := handler(event); err != nil {
 		h.Logger.Errorf("Failed to handle command \"%s\" with path \"%s\": %s", name, path, err)
 	}
+}
+
+type deferCreateMessage interface {
+	DeferCreateMessage(ephemeral bool, opts ...rest.RequestOpt) error
+}
+
+func deferUpdateInteraction(event deferCreateMessage, ephemeral bool) {
+	time.Sleep(time.Millisecond * 2500)
+	_ = event.DeferCreateMessage(ephemeral)
 }
 
 func (h *Handler) handleAutocomplete(event *events.AutocompleteInteractionCreate) {

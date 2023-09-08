@@ -24,7 +24,7 @@ import (
 
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"github.com/pelletier/go-toml/v2"
-	"github.com/sabafly/disgo/discord"
+	"github.com/sabafly/sabafly-disgo/discord"
 	"golang.org/x/text/language"
 	"gopkg.in/yaml.v2"
 )

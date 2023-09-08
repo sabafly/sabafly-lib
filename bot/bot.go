@@ -20,13 +20,13 @@ import (
 	"github.com/sabafly/sabafly-lib/v2/handler"
 
 	"github.com/disgoorg/log"
-	"github.com/sabafly/disgo"
-	"github.com/sabafly/disgo/bot"
-	"github.com/sabafly/disgo/cache"
-	"github.com/sabafly/disgo/gateway"
-	"github.com/sabafly/disgo/handlers"
-	"github.com/sabafly/disgo/oauth2"
-	"github.com/sabafly/disgo/sharding"
+	disgo "github.com/sabafly/sabafly-disgo"
+	"github.com/sabafly/sabafly-disgo/bot"
+	"github.com/sabafly/sabafly-disgo/cache"
+	"github.com/sabafly/sabafly-disgo/gateway"
+	"github.com/sabafly/sabafly-disgo/handlers"
+	"github.com/sabafly/sabafly-disgo/oauth2"
+	"github.com/sabafly/sabafly-disgo/sharding"
 )
 
 func New[T any](logger log.Logger, version string, config Config) *Bot[T] {

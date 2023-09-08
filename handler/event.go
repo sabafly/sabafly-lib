@@ -2,7 +2,7 @@ package handler
 
 import (
 	"github.com/google/uuid"
-	"github.com/sabafly/disgo/bot"
+	"github.com/sabafly/sabafly-disgo/bot"
 )
 
 type RawHandler func(event bot.Event) error
